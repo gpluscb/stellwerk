@@ -1,0 +1,10 @@
+[package]
+name = "socialmediathingnametbd-db"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+sqlx = "0.8.6"
+
+[lints]
+workspace = true
