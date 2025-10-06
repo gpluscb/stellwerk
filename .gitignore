@@ -2,3 +2,4 @@
 .idea/
 docker/data/
 docker/secrets/
+**/.env
