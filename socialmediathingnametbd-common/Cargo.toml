@@ -1,0 +1,12 @@
+[package]
+name = "socialmediathingnametbd-common"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+derive-where = "1.6.0"
+thiserror = "2.0.17"
+time = { version = "0.3.44", features = ["macros"] }
+
+[lints]
+workspace = true
