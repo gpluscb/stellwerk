@@ -29,5 +29,3 @@ secrets:
     file: secrets/POSTGRES_USER.txt
   postgres_password:
     file: secrets/POSTGRES_PASSWORD.txt
-  database_url:
-    file: secrets/DATABASE_URL.txt
