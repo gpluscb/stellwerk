@@ -11,6 +11,11 @@ pub struct User {
     pub handle: UserHandle,
 }
 
+#[derive(Clone, Eq, PartialEq, Debug, Default, Hash)]
+pub struct CreateUser {
+    pub handle: UserHandle,
+}
+
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash)]
 pub struct UserHandle(String);
 

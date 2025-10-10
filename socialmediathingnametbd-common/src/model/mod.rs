@@ -42,3 +42,15 @@ impl<Marker> From<Id<Marker>> for SocialmediathingnametbdSnowflake {
         value.0
     }
 }
+
+impl<Marker> From<u64> for Id<Marker> {
+    fn from(value: u64) -> Self {
+        Id::new(SocialmediathingnametbdSnowflake::new(value))
+    }
+}
+
+impl<Marker> From<Id<Marker>> for u64 {
+    fn from(value: Id<Marker>) -> Self {
+        value.snowflake().get()
+    }
+}

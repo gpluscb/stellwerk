@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO users.users (user_snowflake, handle)\n            VALUES ($1, $2)\n            RETURNING users.user_snowflake\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_snowflake",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Varchar"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "eee9c57331c8c6bef37d50c43dfb006b0d5b8e381438f9cf1ac09b75b45d5beb"
+}

@@ -238,6 +238,18 @@ impl<SnowflakeEpoch> Snowflake<SnowflakeEpoch> {
     }
 }
 
+impl<SnowflakeEpoch> From<u64> for Snowflake<SnowflakeEpoch> {
+    fn from(value: u64) -> Self {
+        Self::new(value)
+    }
+}
+
+impl<SnowflakeEpoch> From<Snowflake<SnowflakeEpoch>> for u64 {
+    fn from(value: Snowflake<SnowflakeEpoch>) -> Self {
+        value.get()
+    }
+}
+
 #[derive_where(Copy, Clone, Eq, PartialEq, Debug, Default, Hash)]
 pub struct SnowflakeGenerator<SnowflakeEpoch> {
     worker_id: WorkerId,
