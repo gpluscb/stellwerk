@@ -73,9 +73,7 @@ impl DbClient {
         .fetch_one(&self.pool)
         .await?;
 
-        Ok(Id::new(SocialmediathingnametbdSnowflake::new(
-            returned_snowflake.cast_unsigned(),
-        )))
+        Ok(returned_snowflake.cast_unsigned().into())
     }
 
     pub async fn fetch_post(&self, post_id: Id<PostMarker>) -> Result<Option<Post>> {
@@ -117,8 +115,6 @@ impl DbClient {
         .fetch_one(&self.pool)
         .await?;
 
-        Ok(Id::new(SocialmediathingnametbdSnowflake::new(
-            returned_snowflake.cast_unsigned(),
-        )))
+        Ok(returned_snowflake.cast_unsigned().into())
     }
 }
