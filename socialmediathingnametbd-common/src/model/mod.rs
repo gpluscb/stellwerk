@@ -1,10 +1,18 @@
 pub mod post;
 pub mod user;
 
+use crate::model::user::InvalidUserHandleError;
 use crate::snowflake::{Epoch, Snowflake, SnowflakeGenerator};
 use std::marker::PhantomData;
+use thiserror::Error;
 use time::UtcDateTime;
 use time::macros::utc_datetime;
+
+#[derive(Clone, Eq, PartialEq, Debug, Hash, Error)]
+pub enum ModelValidationError {
+    #[error(transparent)]
+    UserHandle(#[from] InvalidUserHandleError),
+}
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash)]
 pub struct SocialmediathingnametbdEpoch;

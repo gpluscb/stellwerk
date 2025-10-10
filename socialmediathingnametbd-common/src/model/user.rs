@@ -1,4 +1,5 @@
 use crate::model::Id;
+use thiserror::Error;
 
 pub const USER_HANDLE_MAX_LEN: usize = 50;
 
@@ -19,10 +20,17 @@ pub struct CreateUser {
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash)]
 pub struct UserHandle(String);
 
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash, Error)]
+#[error("The user handle is invalid: {0}")]
+pub struct InvalidUserHandleError(String);
+
 impl UserHandle {
-    #[must_use]
-    pub fn new(handle: String) -> Option<Self> {
-        (handle.chars().count() <= USER_HANDLE_MAX_LEN).then_some(Self(handle))
+    pub fn new(handle: String) -> Result<Self, InvalidUserHandleError> {
+        if handle.chars().count() <= USER_HANDLE_MAX_LEN {
+            Ok(UserHandle(handle))
+        } else {
+            Err(InvalidUserHandleError(handle))
+        }
     }
 
     #[must_use]

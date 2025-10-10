@@ -1,8 +1,8 @@
-use crate::record::{DbDataError, FullPostRecord, UserRecord};
+use crate::record::{FullPostRecord, UserRecord};
 use socialmediathingnametbd_common::model::post::{CreatePost, Post, PostMarker};
 use socialmediathingnametbd_common::model::user::{CreateUser, User, UserMarker};
 use socialmediathingnametbd_common::model::{
-    Id, SocialmediathingnametbdSnowflake, SocialmediathingnametbdSnowflakeGenerator,
+    Id, ModelValidationError, SocialmediathingnametbdSnowflakeGenerator,
 };
 use socialmediathingnametbd_common::snowflake::{ProcessId, WorkerId};
 use sqlx::{PgPool, query_as, query_scalar};
@@ -13,8 +13,8 @@ pub type Result<T, E = DbError> = std::result::Result<T, E>;
 
 #[derive(Debug, Error)]
 pub enum DbError {
-    #[error(transparent)]
-    Data(#[from] DbDataError),
+    #[error("An object in the database was invalid: {0}")]
+    Data(#[from] ModelValidationError),
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),
 }
