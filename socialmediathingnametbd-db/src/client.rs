@@ -1,6 +1,6 @@
 use crate::record::{FullPostRecord, UserRecord};
 use socialmediathingnametbd_common::model::post::{CreatePost, Post, PostMarker};
-use socialmediathingnametbd_common::model::user::{CreateUser, User, UserMarker};
+use socialmediathingnametbd_common::model::user::{CreateUser, User, UserHandle, UserMarker};
 use socialmediathingnametbd_common::model::{
     Id, ModelValidationError, SocialmediathingnametbdSnowflakeGenerator,
 };
@@ -50,6 +50,27 @@ impl DbClient {
                 users.user_snowflake = $1
             ",
             user_id.snowflake().get().cast_signed(),
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        let user = record.map(User::try_from).transpose()?;
+        Ok(user)
+    }
+
+    pub async fn fetch_user_by_handle(&self, handle: &UserHandle) -> Result<Option<User>> {
+        let record = query_as!(
+            UserRecord,
+            "
+            SELECT
+                users.user_snowflake,
+                users.handle
+            FROM
+                users.users
+            WHERE
+                users.handle = $1
+            ",
+            handle.get(),
         )
         .fetch_optional(&self.pool)
         .await?;
