@@ -1373,6 +1373,7 @@ dependencies = [
  "dotenvy",
  "envy",
  "serde",
+ "thiserror",
  "tokio",
  "tower-http",
  "tracing",
