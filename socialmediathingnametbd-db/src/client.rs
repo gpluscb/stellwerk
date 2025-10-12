@@ -1,10 +1,12 @@
 use crate::record::{FullPostRecord, UserRecord};
-use socialmediathingnametbd_common::model::post::{CreatePost, Post, PostMarker};
-use socialmediathingnametbd_common::model::user::{CreateUser, User, UserHandle, UserMarker};
-use socialmediathingnametbd_common::model::{
-    Id, ModelValidationError, SocialmediathingnametbdSnowflakeGenerator,
+use socialmediathingnametbd_common::{
+    model::{
+        Id, ModelValidationError, SocialmediathingnametbdSnowflakeGenerator,
+        post::{CreatePost, Post, PostMarker},
+        user::{CreateUser, User, UserHandle, UserMarker},
+    },
+    snowflake::{ProcessId, WorkerId},
 };
-use socialmediathingnametbd_common::snowflake::{ProcessId, WorkerId};
 use sqlx::{PgPool, query_as, query_scalar};
 use std::sync::nonpoison::Mutex;
 use thiserror::Error;

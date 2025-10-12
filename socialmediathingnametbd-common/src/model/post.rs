@@ -1,5 +1,7 @@
-use crate::model::Id;
-use crate::model::user::{User, UserMarker};
+use crate::model::{
+    Id,
+    user::{User, UserMarker},
+};
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash)]
 pub struct PostMarker;

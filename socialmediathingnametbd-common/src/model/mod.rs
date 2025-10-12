@@ -1,12 +1,13 @@
 pub mod post;
 pub mod user;
 
-use crate::model::user::InvalidUserHandleError;
-use crate::snowflake::{Epoch, Snowflake, SnowflakeGenerator};
+use crate::{
+    model::user::InvalidUserHandleError,
+    snowflake::{Epoch, Snowflake, SnowflakeGenerator},
+};
 use std::marker::PhantomData;
 use thiserror::Error;
-use time::UtcDateTime;
-use time::macros::utc_datetime;
+use time::{UtcDateTime, macros::utc_datetime};
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Error)]
 pub enum ModelValidationError {

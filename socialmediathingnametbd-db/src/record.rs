@@ -1,6 +1,8 @@
-use socialmediathingnametbd_common::model::ModelValidationError;
-use socialmediathingnametbd_common::model::post::Post;
-use socialmediathingnametbd_common::model::user::{User, UserHandle};
+use socialmediathingnametbd_common::model::{
+    ModelValidationError,
+    post::Post,
+    user::{User, UserHandle},
+};
 
 #[derive(Clone, Eq, PartialEq, Debug, Default, Hash)]
 pub struct UserRecord {
