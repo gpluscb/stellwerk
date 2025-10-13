@@ -11,7 +11,7 @@ thiserror = "2.0.17"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 tower-http = { version = "0.6", features = ["trace"] }
-tokio = { version = "1.47.1", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.47.1", features = ["rt-multi-thread", "macros", "signal"] }
 axum = "0.8.6"
 axum-server = "0.7.2"
 axum-extra = "0.10.3"

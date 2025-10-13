@@ -2,8 +2,9 @@ use axum::routing::get;
 use serde::Deserialize;
 use std::net::{IpAddr, SocketAddr};
 use thiserror::Error;
+use tokio::{signal, signal::unix::SignalKind};
 use tower_http::trace::TraceLayer;
-use tracing::debug;
+use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Debug, Error)]
@@ -16,6 +17,8 @@ enum InitError {
     TcpBind(std::io::Error),
     #[error("Error serving server: {0}")]
     TcpServe(std::io::Error),
+    #[error("Error installing shutdown signal handler: {0}")]
+    SignalHandler(std::io::Error),
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Deserialize)]
@@ -50,6 +53,34 @@ fn get_env() -> Result<Env, InitError> {
     envy::from_env().map_err(InitError::from)
 }
 
+fn await_shutdown() -> Result<impl Future<Output = ()>, InitError> {
+    #[cfg(unix)]
+    let mut ctrl_c_signal =
+        signal::unix::signal(SignalKind::interrupt()).map_err(InitError::SignalHandler)?;
+
+    #[cfg(not(unix))]
+    let mut ctrl_c_signal = signal::windows::ctrl_c().map_err(InitError::SignalHandler)?;
+
+    #[cfg(unix)]
+    let mut terminate_signal =
+        signal::unix::signal(SignalKind::terminate()).map_err(InitError::SignalHandler)?;
+
+    #[cfg(not(unix))]
+    let terminate_future = std::future::pending::<()>();
+
+    Ok(async move {
+        #[cfg(unix)]
+        let terminate_future = terminate_signal.recv();
+
+        tokio::select! {
+            _ = ctrl_c_signal.recv() => {},
+            _ = terminate_future => {},
+        }
+
+        info!("Shutdown signal received");
+    })
+}
+
 #[tokio::main]
 async fn main() -> Result<(), InitError> {
     install_tracing();
@@ -65,6 +96,7 @@ async fn main() -> Result<(), InitError> {
         .await
         .map_err(InitError::TcpBind)?;
     axum::serve(listener, app)
+        .with_graceful_shutdown(await_shutdown()?)
         .await
         .map_err(InitError::TcpServe)?;
 
