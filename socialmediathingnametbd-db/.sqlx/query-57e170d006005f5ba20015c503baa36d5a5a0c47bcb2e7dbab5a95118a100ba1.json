@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                users.user_snowflake,\n                users.handle\n            FROM\n                users.users\n            WHERE\n                users.handle = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_snowflake",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "handle",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "57e170d006005f5ba20015c503baa36d5a5a0c47bcb2e7dbab5a95118a100ba1"
+}
