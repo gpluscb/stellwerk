@@ -7,7 +7,7 @@ use socialmediathingnametbd_common::{
     },
     snowflake::{ProcessId, WorkerId},
 };
-use sqlx::{PgPool, query_as, query_scalar};
+use sqlx::{PgPool, migrate, migrate::MigrateError, query_as, query_scalar};
 use std::sync::nonpoison::Mutex;
 use thiserror::Error;
 
@@ -15,6 +15,8 @@ pub type Result<T, E = DbError> = std::result::Result<T, E>;
 
 #[derive(Debug, Error)]
 pub enum DbError {
+    #[error("Database migration failed: {0}")]
+    Migrate(#[from] MigrateError),
     #[error("An object in the database was invalid: {0}")]
     Data(#[from] ModelValidationError),
     #[error(transparent)]
@@ -27,6 +29,17 @@ pub struct DbClient {
 }
 
 impl DbClient {
+    pub async fn connect_and_migrate(
+        url: &str,
+        worker_id: WorkerId,
+        process_id: ProcessId,
+    ) -> Result<Self> {
+        let pool = PgPool::connect(url).await?;
+        migrate!().run(&pool).await?;
+
+        Ok(Self::new(pool, worker_id, process_id))
+    }
+
     #[must_use]
     pub fn new(pool: PgPool, worker_id: WorkerId, process_id: ProcessId) -> Self {
         let snowflake_generator = Mutex::new(SocialmediathingnametbdSnowflakeGenerator::new(
