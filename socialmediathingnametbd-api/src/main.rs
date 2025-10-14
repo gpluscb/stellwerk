@@ -33,6 +33,7 @@ fn install_tracing() {
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
                 "socialmediathingnametbd_api=debug,\
                 socialmediathingnametbd_common=debug,\
+                socialmediathingnametbd_db=debug,\
                 tower_http=debug,axum::rejection=trace,sqlx=debug"
                     .into()
             }),
@@ -95,6 +96,7 @@ async fn main() -> Result<(), InitError> {
     let listener = tokio::net::TcpListener::bind(server_address)
         .await
         .map_err(InitError::TcpBind)?;
+    info!("Listening on {server_address}");
     axum::serve(listener, app)
         .with_graceful_shutdown(await_shutdown()?)
         .await
