@@ -1,0 +1,17 @@
+*
+
+!Cargo.toml
+!Cargo.lock
+!rust-toolchain.toml
+
+!socialmediathingnametbd-api/Cargo.toml
+!socialmediathingnametbd-api/src
+
+!socialmediathingnametbd-common/Cargo.toml
+!socialmediathingnametbd-common/src
+
+!socialmediathingnametbd-db/.cargo
+!socialmediathingnametbd-db/.sqlx
+!socialmediathingnametbd-db/migrations
+!socialmediathingnametbd-db/Cargo.toml
+!socialmediathingnametbd-db/src
