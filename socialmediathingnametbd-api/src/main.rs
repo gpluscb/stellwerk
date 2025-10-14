@@ -44,7 +44,7 @@ fn install_tracing() {
 fn get_env() -> Result<Env, InitError> {
     if let Err(e) = dotenvy::dotenv() {
         if e.not_found() {
-            debug!("No .dotenv file found");
+            debug!("No .env file found");
         } else {
             return Err(e.into());
         }
