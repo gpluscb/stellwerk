@@ -28,10 +28,6 @@ enum InitError {
     SignalHandler(std::io::Error),
     #[error("Database connection and migration failed: {0}")]
     DatabaseInitialization(DbError),
-    #[error("Provided worker id was invalid: {0}")]
-    InvalidWorkerId(u8),
-    #[error("Provided process id was invalid: {0}")]
-    InvalidProcessId(u8),
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Deserialize)]
@@ -39,8 +35,8 @@ struct Env {
     server_address: IpAddr,
     server_port: u16,
     database_url: Box<str>,
-    worker_id: u8,
-    process_id: u8,
+    worker_id: WorkerId,
+    process_id: ProcessId,
 }
 
 fn install_tracing() {
@@ -71,12 +67,7 @@ fn get_env() -> Result<Env, InitError> {
 }
 
 async fn init_state(env: &Env) -> Result<ServerState, InitError> {
-    let worker_id =
-        WorkerId::new(env.worker_id).ok_or(InitError::InvalidWorkerId(env.worker_id))?;
-    let process_id =
-        ProcessId::new(env.process_id).ok_or(InitError::InvalidProcessId(env.process_id))?;
-
-    let db_client = DbClient::connect_and_migrate(&env.database_url, worker_id, process_id)
+    let db_client = DbClient::connect_and_migrate(&env.database_url, env.worker_id, env.process_id)
         .await
         .map_err(InitError::DatabaseInitialization)?;
 
