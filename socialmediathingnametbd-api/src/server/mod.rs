@@ -10,6 +10,7 @@ use thiserror::Error;
 use tracing::error;
 
 mod posts;
+mod users;
 
 pub type ServerRouter = Router<ServerState>;
 
@@ -30,6 +31,8 @@ pub enum Error {
     PathRejection(#[from] PathRejection),
     #[error(transparent)]
     Database(#[from] DbError),
+    #[error(transparent)]
+    Post(#[from] posts::Error),
 }
 
 impl Error {
@@ -37,6 +40,7 @@ impl Error {
         match self {
             Error::PathRejection(_) => StatusCode::NOT_FOUND,
             Error::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::Post(inner) => inner.status(),
         }
     }
 }
@@ -47,6 +51,6 @@ impl IntoResponse for Error {
 
         error!(error = %self, %status, "Replying with error");
 
-        format!("Error: {status}").into_response()
+        (status, format!("Error: {status}")).into_response()
     }
 }
