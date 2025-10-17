@@ -60,13 +60,13 @@ pub struct Snowflake<SnowflakeEpoch>(u64, PhantomData<SnowflakeEpoch>);
 
 impl WorkerId {
     #[must_use]
-    pub fn new(id: u8) -> Self {
-        Self::new_checked(id).expect("Worker id out of range.")
+    pub fn new(id: u8) -> Option<Self> {
+        (id < 1 << WORKER_ID_LENGTH).then_some(Self(id))
     }
 
     #[must_use]
-    pub fn new_checked(id: u8) -> Option<Self> {
-        (id < 1 << WORKER_ID_LENGTH).then_some(Self(id))
+    pub fn new_unchecked(id: u8) -> Self {
+        Self::new(id).expect("Worker id out of range.")
     }
 
     #[must_use]
@@ -77,13 +77,13 @@ impl WorkerId {
 
 impl ProcessId {
     #[must_use]
-    pub fn new(id: u8) -> Self {
-        Self::new_checked(id).expect("Process id out of range.")
+    pub fn new(id: u8) -> Option<Self> {
+        (id < 1 << PROCESS_ID_LENGTH).then_some(Self(id))
     }
 
     #[must_use]
-    pub fn new_checked(id: u8) -> Option<Self> {
-        (id < 1 << PROCESS_ID_LENGTH).then_some(Self(id))
+    pub fn new_unchecked(id: u8) -> Self {
+        Self::new(id).expect("Process id out of range.")
     }
 
     #[must_use]
@@ -94,13 +94,13 @@ impl ProcessId {
 
 impl SnowflakeIncrement {
     #[must_use]
-    pub fn new(id: u16) -> Self {
-        Self::new_checked(id).expect("Increment out of range.")
+    pub fn new(increment: u16) -> Option<Self> {
+        (increment < 1 << INCREMENT_LENGTH).then_some(Self(increment))
     }
 
     #[must_use]
-    pub fn new_checked(increment: u16) -> Option<Self> {
-        (increment < 1 << INCREMENT_LENGTH).then_some(Self(increment))
+    pub fn new_unchecked(id: u16) -> Self {
+        Self::new(id).expect("Increment out of range.")
     }
 
     #[must_use]
@@ -120,13 +120,13 @@ impl SnowflakeIncrement {
 
 impl<SnowflakeEpoch> SnowflakeTimestamp<SnowflakeEpoch> {
     #[must_use]
-    pub fn new(timestamp: u64) -> Self {
-        Self::new_checked(timestamp).expect("Timestamp uses too many bits.")
+    pub fn new(timestamp: u64) -> Option<Self> {
+        (timestamp < 1 << TIMESTAMP_LENGTH).then_some(Self(timestamp, PhantomData))
     }
 
     #[must_use]
-    pub fn new_checked(timestamp: u64) -> Option<Self> {
-        (timestamp < 1 << TIMESTAMP_LENGTH).then_some(Self(timestamp, PhantomData))
+    pub fn new_unchecked(timestamp: u64) -> Self {
+        Self::new(timestamp).expect("Timestamp uses too many bits.")
     }
 
     #[must_use]
@@ -167,7 +167,7 @@ impl<SnowflakeEpoch: Epoch> TryFrom<UtcDateTime> for SnowflakeTimestamp<Snowflak
             return Err(Self::Error::TimeBeforeEpoch);
         }
         let millis_u64 = u64::try_from(millis).map_err(|_| Self::Error::TimestampTooLarge)?;
-        Self::new_checked(millis_u64).ok_or(Self::Error::TimestampTooLarge)
+        Self::new(millis_u64).ok_or(Self::Error::TimestampTooLarge)
     }
 }
 
@@ -199,25 +199,25 @@ impl<SnowflakeEpoch> Snowflake<SnowflakeEpoch> {
 
     #[must_use]
     pub fn timestamp(self) -> SnowflakeTimestamp<SnowflakeEpoch> {
-        SnowflakeTimestamp::new((self.0 | TIMESTAMP_BITMASK) >> TIMESTAMP_OFFSET)
+        SnowflakeTimestamp::new_unchecked((self.0 | TIMESTAMP_BITMASK) >> TIMESTAMP_OFFSET)
     }
 
     #[must_use]
     pub fn worker_id(self) -> WorkerId {
         #[allow(clippy::cast_possible_truncation)]
-        WorkerId::new(((self.0 | WORKER_ID_BITMASK) >> WORKER_ID_OFFSET) as u8)
+        WorkerId::new_unchecked(((self.0 | WORKER_ID_BITMASK) >> WORKER_ID_OFFSET) as u8)
     }
 
     #[must_use]
     pub fn process_id(self) -> ProcessId {
         #[allow(clippy::cast_possible_truncation)]
-        ProcessId::new(((self.0 | PROCESS_ID_BITMASK) >> PROCESS_ID_OFFSET) as u8)
+        ProcessId::new_unchecked(((self.0 | PROCESS_ID_BITMASK) >> PROCESS_ID_OFFSET) as u8)
     }
 
     #[must_use]
     pub fn increment(self) -> SnowflakeIncrement {
         #[allow(clippy::cast_possible_truncation)]
-        SnowflakeIncrement::new(((self.0 | INCREMENT_BITMASK) >> INCREMENT_OFFSET) as u16)
+        SnowflakeIncrement::new_unchecked(((self.0 | INCREMENT_BITMASK) >> INCREMENT_OFFSET) as u16)
     }
 
     #[must_use]
@@ -235,6 +235,12 @@ impl<SnowflakeEpoch> Snowflake<SnowflakeEpoch> {
             self.process_id(),
             self.increment(),
         )
+    }
+}
+
+impl<SnowflakeEpoch> Display for Snowflake<SnowflakeEpoch> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.0, f)
     }
 }
 
@@ -264,7 +270,7 @@ impl<SnowflakeEpoch> SnowflakeGenerator<SnowflakeEpoch> {
         Self {
             worker_id,
             process_id,
-            next_increment: SnowflakeIncrement::new(0),
+            next_increment: SnowflakeIncrement::new_unchecked(0),
             phantom_data: PhantomData,
         }
     }
