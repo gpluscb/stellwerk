@@ -15,6 +15,12 @@ pub struct Post {
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Default, Hash, Deserialize, Serialize)]
+pub struct PartialPost {
+    pub id: Id<PostMarker>,
+    pub content: String,
+}
+
+#[derive(Clone, Eq, PartialEq, Debug, Default, Hash, Deserialize, Serialize)]
 pub struct CreatePost {
     pub author: Id<UserMarker>,
     pub content: String,

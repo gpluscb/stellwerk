@@ -20,7 +20,7 @@ pub struct ServerState {
 }
 
 pub fn routes() -> ServerRouter {
-    Router::new().merge(posts::routes())
+    Router::new().merge(posts::routes()).merge(users::routes())
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -32,7 +32,9 @@ pub enum Error {
     #[error(transparent)]
     Database(#[from] DbError),
     #[error(transparent)]
-    Post(#[from] posts::Error),
+    Posts(#[from] posts::Error),
+    #[error(transparent)]
+    Users(#[from] users::Error),
 }
 
 impl Error {
@@ -40,7 +42,8 @@ impl Error {
         match self {
             Error::PathRejection(_) => StatusCode::NOT_FOUND,
             Error::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            Error::Post(inner) => inner.status(),
+            Error::Posts(inner) => inner.status(),
+            Error::Users(inner) => inner.status(),
         }
     }
 }

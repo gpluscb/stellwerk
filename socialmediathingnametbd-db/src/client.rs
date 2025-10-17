@@ -1,8 +1,8 @@
-use crate::record::{FullPostRecord, UserRecord};
+use crate::record::{FullPostRecord, PartialPostRecord, UserRecord};
 use socialmediathingnametbd_common::{
     model::{
         Id, ModelValidationError, SocialmediathingnametbdSnowflakeGenerator,
-        post::{CreatePost, Post, PostMarker},
+        post::{CreatePost, PartialPost, Post, PostMarker},
         user::{CreateUser, User, UserHandle, UserMarker},
     },
     snowflake::{ProcessId, WorkerId},
@@ -95,6 +95,52 @@ impl DbClient {
         Ok(user)
     }
 
+    pub async fn fetch_user_posts(
+        &self,
+        user_id: Id<UserMarker>,
+    ) -> Result<Option<Vec<PartialPost>>> {
+        let mut transaction = self.pool.begin().await?;
+
+        let user_exists = query_scalar!(
+            r#"
+            SELECT count(1) as "c!"
+            FROM users.users
+            WHERE users.user_snowflake = $1
+            "#,
+            user_id.snowflake().get().cast_signed(),
+        )
+        .fetch_one(&mut *transaction)
+        .await?
+            != 0;
+
+        if !user_exists {
+            return Ok(None);
+        }
+
+        let records = query_as!(
+            PartialPostRecord,
+            "
+            SELECT
+                posts.post_snowflake,
+                posts.content
+            FROM
+                posts.posts
+            WHERE
+                posts.user_snowflake = $1
+            ",
+            user_id.snowflake().get().cast_signed(),
+        )
+        .fetch_all(&mut *transaction)
+        .await?;
+
+        let posts = records
+            .into_iter()
+            .map(PartialPost::try_from)
+            .collect::<Result<_, _>>()?;
+
+        Ok(Some(posts))
+    }
+
     pub async fn create_user(&self, user: &CreateUser) -> Result<Id<UserMarker>> {
         let user_snowflake = self.snowflake_generator.lock().generate();
 
@@ -110,7 +156,10 @@ impl DbClient {
         .fetch_one(&self.pool)
         .await?;
 
-        Ok(returned_snowflake.cast_unsigned().into())
+        let returned_id: Id<UserMarker> = returned_snowflake.cast_unsigned().into();
+        debug_assert_eq!(returned_id.snowflake(), user_snowflake);
+
+        Ok(returned_id)
     }
 
     pub async fn fetch_post(&self, post_id: Id<PostMarker>) -> Result<Option<Post>> {

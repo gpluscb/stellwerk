@@ -1,6 +1,6 @@
 use socialmediathingnametbd_common::model::{
     ModelValidationError,
-    post::Post,
+    post::{PartialPost, Post},
     user::{User, UserHandle},
 };
 
@@ -18,6 +18,12 @@ pub struct FullPostRecord {
     pub handle: String,
 }
 
+#[derive(Clone, Eq, PartialEq, Debug, Default, Hash)]
+pub struct PartialPostRecord {
+    pub post_snowflake: i64,
+    pub content: String,
+}
+
 impl TryFrom<UserRecord> for User {
     type Error = ModelValidationError;
 
@@ -25,6 +31,17 @@ impl TryFrom<UserRecord> for User {
         Ok(Self {
             id: value.user_snowflake.cast_unsigned().into(),
             handle: UserHandle::new(value.handle)?,
+        })
+    }
+}
+
+impl TryFrom<PartialPostRecord> for PartialPost {
+    type Error = ModelValidationError;
+
+    fn try_from(value: PartialPostRecord) -> Result<Self, Self::Error> {
+        Ok(Self {
+            id: value.post_snowflake.cast_unsigned().into(),
+            content: value.content,
         })
     }
 }
