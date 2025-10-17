@@ -19,7 +19,6 @@ struct GetPostPath {
     id: Id<PostMarker>,
 }
 
-#[axum::debug_handler]
 async fn get_post(
     GetPostPath { id }: GetPostPath,
     State(db): State<Arc<DbClient>>,
