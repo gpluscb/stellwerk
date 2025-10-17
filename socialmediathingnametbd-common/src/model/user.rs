@@ -1,5 +1,8 @@
 use crate::model::Id;
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize, Deserializer, Serialize,
+    de::{Error, Unexpected},
+};
 use thiserror::Error;
 
 pub const USER_HANDLE_MAX_LEN: usize = 50;
@@ -18,8 +21,7 @@ pub struct CreateUser {
     pub handle: UserHandle,
 }
 
-// FIXME: Deserialize does not uphold invariant
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash, Deserialize, Serialize)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash, Serialize)]
 #[serde(transparent)]
 pub struct UserHandle(String);
 
@@ -44,5 +46,16 @@ impl UserHandle {
     #[must_use]
     pub fn into_inner(self) -> String {
         self.0
+    }
+}
+
+impl<'de> Deserialize<'de> for UserHandle {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let inner = String::deserialize(deserializer)?;
+        UserHandle::new(inner)
+            .map_err(|err| Error::invalid_value(Unexpected::Str(&err.0), &"UserHandle"))
     }
 }
