@@ -4,6 +4,9 @@ version = "0.1.0"
 edition.workspace = true
 
 [dependencies]
+socialmediathingnametbd-common = { path = "../socialmediathingnametbd-common" }
+socialmediathingnametbd-db = { path = "../socialmediathingnametbd-db" }
+
 dotenvy = "0.15.7"
 envy = "0.4.2"
 serde = { version = "1.0.228", features = ["derive"] }
@@ -12,9 +15,9 @@ tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 tower-http = { version = "0.6", features = ["trace"] }
 tokio = { version = "1.47.1", features = ["rt-multi-thread", "macros", "signal"] }
-axum = "0.8.6"
+axum = { version = "0.8.6", features = ["macros"] }
 axum-server = "0.7.2"
-axum-extra = "0.10.3"
+axum-extra = { version = "0.10.3", features = ["typed-routing"] }
 
 [lints]
 workspace = true

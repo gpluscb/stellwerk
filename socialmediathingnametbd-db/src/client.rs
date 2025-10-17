@@ -23,6 +23,7 @@ pub enum DbError {
     Sqlx(#[from] sqlx::Error),
 }
 
+#[derive(Debug)]
 pub struct DbClient {
     pool: PgPool,
     snowflake_generator: Mutex<SocialmediathingnametbdSnowflakeGenerator>,

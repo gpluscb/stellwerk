@@ -5,7 +5,8 @@ use crate::{
     model::user::InvalidUserHandleError,
     snowflake::{Epoch, Snowflake, SnowflakeGenerator},
 };
-use std::marker::PhantomData;
+use serde::{Deserialize, Serialize};
+use std::{fmt::Display, marker::PhantomData};
 use thiserror::Error;
 use time::{UtcDateTime, macros::utc_datetime};
 
@@ -25,8 +26,14 @@ pub type SocialmediathingnametbdSnowflake = Snowflake<SocialmediathingnametbdEpo
 pub type SocialmediathingnametbdSnowflakeGenerator =
     SnowflakeGenerator<SocialmediathingnametbdEpoch>;
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash)]
-pub struct Id<Marker>(SocialmediathingnametbdSnowflake, PhantomData<Marker>);
+#[derive(
+    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash, Serialize, Deserialize,
+)]
+#[serde(transparent)]
+pub struct Id<Marker>(
+    SocialmediathingnametbdSnowflake,
+    #[serde(skip)] PhantomData<Marker>,
+);
 
 impl<Marker> Id<Marker> {
     #[must_use]
@@ -37,6 +44,12 @@ impl<Marker> Id<Marker> {
     #[must_use]
     pub fn snowflake(self) -> SocialmediathingnametbdSnowflake {
         self.0
+    }
+}
+
+impl<Marker> Display for Id<Marker> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.0, f)
     }
 }
 

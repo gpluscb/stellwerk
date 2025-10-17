@@ -1,4 +1,5 @@
 use crate::model::Id;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 pub const USER_HANDLE_MAX_LEN: usize = 50;
@@ -6,18 +7,20 @@ pub const USER_HANDLE_MAX_LEN: usize = 50;
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash)]
 pub struct UserMarker;
 
-#[derive(Clone, Eq, PartialEq, Debug, Default, Hash)]
+#[derive(Clone, Eq, PartialEq, Debug, Default, Hash, Deserialize, Serialize)]
 pub struct User {
     pub id: Id<UserMarker>,
     pub handle: UserHandle,
 }
 
-#[derive(Clone, Eq, PartialEq, Debug, Default, Hash)]
+#[derive(Clone, Eq, PartialEq, Debug, Default, Hash, Deserialize, Serialize)]
 pub struct CreateUser {
     pub handle: UserHandle,
 }
 
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash)]
+// FIXME: Deserialize does not uphold invariant
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash, Deserialize, Serialize)]
+#[serde(transparent)]
 pub struct UserHandle(String);
 
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash, Error)]

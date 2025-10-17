@@ -3,7 +3,10 @@
 //! See <https://discord.com/developers/docs/reference#snowflakes>
 
 use derive_where::derive_where;
-use std::marker::PhantomData;
+use std::{
+    fmt::{Debug, Display, Formatter},
+    marker::PhantomData,
+};
 use thiserror::Error;
 use time::UtcDateTime;
 
@@ -55,8 +58,21 @@ pub struct SnowflakeIncrement(u16);
 #[derive_where(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash)]
 pub struct SnowflakeTimestamp<SnowflakeEpoch>(u64, PhantomData<SnowflakeEpoch>);
 
-#[derive_where(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash)]
-pub struct Snowflake<SnowflakeEpoch>(u64, PhantomData<SnowflakeEpoch>);
+#[derive_where(
+    Copy,
+    Clone,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Debug,
+    Default,
+    Hash,
+    Serialize,
+    Deserialize
+)]
+#[serde(transparent)]
+pub struct Snowflake<SnowflakeEpoch>(u64, #[serde(skip)] PhantomData<SnowflakeEpoch>);
 
 impl WorkerId {
     #[must_use]

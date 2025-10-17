@@ -1,6 +1,13 @@
-use axum::routing::get;
+mod server;
+
+use crate::server::ServerState;
 use serde::Deserialize;
-use std::net::{IpAddr, SocketAddr};
+use socialmediathingnametbd_common::snowflake::{ProcessId, WorkerId};
+use socialmediathingnametbd_db::client::{DbClient, DbError};
+use std::{
+    net::{IpAddr, SocketAddr},
+    sync::Arc,
+};
 use thiserror::Error;
 use tokio::{signal, signal::unix::SignalKind};
 use tower_http::trace::TraceLayer;
@@ -19,12 +26,21 @@ enum InitError {
     TcpServe(std::io::Error),
     #[error("Error installing shutdown signal handler: {0}")]
     SignalHandler(std::io::Error),
+    #[error("Database connection and migration failed: {0}")]
+    DatabaseInitialization(DbError),
+    #[error("Provided worker id was invalid: {0}")]
+    InvalidWorkerId(u8),
+    #[error("Provided process id was invalid: {0}")]
+    InvalidProcessId(u8),
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Deserialize)]
 struct Env {
     server_address: IpAddr,
     server_port: u16,
+    database_url: Box<str>,
+    worker_id: u8,
+    process_id: u8,
 }
 
 fn install_tracing() {
@@ -52,6 +68,21 @@ fn get_env() -> Result<Env, InitError> {
     }
 
     envy::from_env().map_err(InitError::from)
+}
+
+async fn init_state(env: &Env) -> Result<ServerState, InitError> {
+    let worker_id =
+        WorkerId::new(env.worker_id).ok_or(InitError::InvalidWorkerId(env.worker_id))?;
+    let process_id =
+        ProcessId::new(env.process_id).ok_or(InitError::InvalidProcessId(env.process_id))?;
+
+    let db_client = DbClient::connect_and_migrate(&env.database_url, worker_id, process_id)
+        .await
+        .map_err(InitError::DatabaseInitialization)?;
+
+    Ok(ServerState {
+        db_client: Arc::new(db_client),
+    })
 }
 
 fn await_shutdown() -> Result<impl Future<Output = ()>, InitError> {
@@ -87,10 +118,9 @@ async fn main() -> Result<(), InitError> {
     install_tracing();
     let env = get_env()?;
 
+    let state = init_state(&env).await?;
     let tracing_layer = TraceLayer::new_for_http();
-    let app = axum::Router::new()
-        .route("/", get(|| async { "hi" }))
-        .layer(tracing_layer);
+    let app = server::routes().layer(tracing_layer).with_state(state);
 
     let server_address = SocketAddr::new(env.server_address, env.server_port);
     let listener = tokio::net::TcpListener::bind(server_address)
