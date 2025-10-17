@@ -3,6 +3,10 @@
 //! See <https://discord.com/developers/docs/reference#snowflakes>
 
 use derive_where::derive_where;
+use serde::{
+    Deserialize, Deserializer, Serialize,
+    de::{Error, Unexpected},
+};
 use std::{
     fmt::{Debug, Display, Formatter},
     marker::PhantomData,
@@ -46,17 +50,85 @@ pub trait Epoch {
     const EPOCH_TIME: UtcDateTime;
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash)]
-pub struct WorkerId(u8);
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash, Error)]
+#[error("Snowflake part was out of range for creation: {0}")]
+pub struct SnowflakePartOutOfRangeError<TInt>(TInt);
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash)]
-pub struct ProcessId(u8);
+macro_rules! snowflake_part {
+    ($name:ident: $repr:ty = (snowflake | $bitmask:ident) >> $offset:ident;
+        len = $length:ident) => {
+        #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash, Serialize)]
+        pub struct $name($repr);
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash)]
-pub struct SnowflakeIncrement(u16);
+        __snowflake_part_impls!($name<>: $repr = (snowflake | $bitmask) >> $offset; len = $length);
+    };
+    ($name:ident<SnowflakeEpoch>: $repr:ty = (snowflake | $bitmask:ident) >> $offset:ident;
+        len = $length:ident) => {
+        #[derive_where(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash, Serialize)]
+        pub struct $name<SnowflakeEpoch>($repr, PhantomData<SnowflakeEpoch>);
 
-#[derive_where(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash)]
-pub struct SnowflakeTimestamp<SnowflakeEpoch>(u64, PhantomData<SnowflakeEpoch>);
+        __snowflake_part_impls!($name<SnowflakeEpoch>: $repr = (snowflake | $bitmask) >> $offset; len = $length);
+    };
+}
+
+macro_rules! __snowflake_part_impls {
+    ($name:ident<$($generic:ident)?>: $repr:ty = (snowflake | $bitmask:ident) >> $offset:ident;
+        len = $length:ident) => {
+
+        impl$(<$generic>)? $name$(<$generic>)? {
+            #[must_use]
+            pub fn new(id: $repr) -> Option<Self> {
+                (id < 1 << $length).then_some(Self(id, $(PhantomData::<$generic>)?))
+            }
+
+            #[must_use]
+            pub fn new_unchecked(id: $repr) -> Self {
+                Self::new(id).expect(concat!(stringify!($name), " out of range."))
+            }
+
+            #[must_use]
+            pub fn get(self) -> $repr {
+                self.0
+            }
+        }
+
+        impl<SnowflakeEpoch> From<Snowflake<SnowflakeEpoch>> for $name$(<$generic>)? {
+            fn from(value: Snowflake<SnowflakeEpoch>) -> Self {
+                #[allow(clippy::cast_possible_truncation)]
+                Self::new_unchecked(((value.get() | $bitmask) >> $offset) as $repr)
+            }
+        }
+
+        impl$(<$generic>)? TryFrom<$repr> for $name$(<$generic>)? {
+            type Error = SnowflakePartOutOfRangeError<$repr>;
+
+            fn try_from(value: $repr) -> Result<Self, Self::Error> {
+                Self::new(value).ok_or(SnowflakePartOutOfRangeError(value))
+            }
+        }
+
+        impl<'de$(, $generic)?> Deserialize<'de> for $name$(<$generic>)? {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                let inner = <$repr as Deserialize<'de>>::deserialize(deserializer)?;
+                Self::new(inner).ok_or_else(|| {
+                    Error::invalid_value(Unexpected::Unsigned(inner.into()), &stringify!($name))
+                })
+            }
+        }
+    };
+}
+
+snowflake_part!(WorkerId: u8 = (snowflake | WORKER_ID_BITMASK) >> WORKER_ID_OFFSET;
+    len = WORKER_ID_LENGTH);
+snowflake_part!(ProcessId: u8 = (snowflake | PROCESS_ID_BITMASK) >> PROCESS_ID_OFFSET;
+    len = PROCESS_ID_LENGTH);
+snowflake_part!(SnowflakeIncrement: u16 = (snowflake | INCREMENT_BITMASK) >> INCREMENT_OFFSET;
+    len = INCREMENT_LENGTH);
+snowflake_part!(SnowflakeTimestamp<SnowflakeEpoch>: u64 = (snowflake | TIMESTAMP_BITMASK) >> TIMESTAMP_OFFSET;
+    len = TIMESTAMP_LENGTH);
 
 #[derive_where(
     Copy,
@@ -74,56 +146,7 @@ pub struct SnowflakeTimestamp<SnowflakeEpoch>(u64, PhantomData<SnowflakeEpoch>);
 #[serde(transparent)]
 pub struct Snowflake<SnowflakeEpoch>(u64, #[serde(skip)] PhantomData<SnowflakeEpoch>);
 
-impl WorkerId {
-    #[must_use]
-    pub fn new(id: u8) -> Option<Self> {
-        (id < 1 << WORKER_ID_LENGTH).then_some(Self(id))
-    }
-
-    #[must_use]
-    pub fn new_unchecked(id: u8) -> Self {
-        Self::new(id).expect("Worker id out of range.")
-    }
-
-    #[must_use]
-    pub fn get(self) -> u8 {
-        self.0
-    }
-}
-
-impl ProcessId {
-    #[must_use]
-    pub fn new(id: u8) -> Option<Self> {
-        (id < 1 << PROCESS_ID_LENGTH).then_some(Self(id))
-    }
-
-    #[must_use]
-    pub fn new_unchecked(id: u8) -> Self {
-        Self::new(id).expect("Process id out of range.")
-    }
-
-    #[must_use]
-    pub fn get(self) -> u8 {
-        self.0
-    }
-}
-
 impl SnowflakeIncrement {
-    #[must_use]
-    pub fn new(increment: u16) -> Option<Self> {
-        (increment < 1 << INCREMENT_LENGTH).then_some(Self(increment))
-    }
-
-    #[must_use]
-    pub fn new_unchecked(id: u16) -> Self {
-        Self::new(id).expect("Increment out of range.")
-    }
-
-    #[must_use]
-    pub fn get(self) -> u16 {
-        self.0
-    }
-
     #[must_use]
     pub fn next(self) -> Self {
         Self((self.0 + 1) % (1 << INCREMENT_LENGTH))
@@ -135,16 +158,6 @@ impl SnowflakeIncrement {
 }
 
 impl<SnowflakeEpoch> SnowflakeTimestamp<SnowflakeEpoch> {
-    #[must_use]
-    pub fn new(timestamp: u64) -> Option<Self> {
-        (timestamp < 1 << TIMESTAMP_LENGTH).then_some(Self(timestamp, PhantomData))
-    }
-
-    #[must_use]
-    pub fn new_unchecked(timestamp: u64) -> Self {
-        Self::new(timestamp).expect("Timestamp uses too many bits.")
-    }
-
     #[must_use]
     pub fn from_time_unchecked(value: UtcDateTime) -> Self
     where
@@ -166,11 +179,6 @@ impl<SnowflakeEpoch> SnowflakeTimestamp<SnowflakeEpoch> {
         SnowflakeEpoch: Epoch,
     {
         Self::try_from(UtcDateTime::now())
-    }
-
-    #[must_use]
-    pub fn get(self) -> u64 {
-        self.0
     }
 }
 
@@ -215,25 +223,25 @@ impl<SnowflakeEpoch> Snowflake<SnowflakeEpoch> {
 
     #[must_use]
     pub fn timestamp(self) -> SnowflakeTimestamp<SnowflakeEpoch> {
-        SnowflakeTimestamp::new_unchecked((self.0 | TIMESTAMP_BITMASK) >> TIMESTAMP_OFFSET)
+        self.into()
     }
 
     #[must_use]
     pub fn worker_id(self) -> WorkerId {
         #[allow(clippy::cast_possible_truncation)]
-        WorkerId::new_unchecked(((self.0 | WORKER_ID_BITMASK) >> WORKER_ID_OFFSET) as u8)
+        self.into()
     }
 
     #[must_use]
     pub fn process_id(self) -> ProcessId {
         #[allow(clippy::cast_possible_truncation)]
-        ProcessId::new_unchecked(((self.0 | PROCESS_ID_BITMASK) >> PROCESS_ID_OFFSET) as u8)
+        self.into()
     }
 
     #[must_use]
     pub fn increment(self) -> SnowflakeIncrement {
         #[allow(clippy::cast_possible_truncation)]
-        SnowflakeIncrement::new_unchecked(((self.0 | INCREMENT_BITMASK) >> INCREMENT_OFFSET) as u16)
+        self.into()
     }
 
     #[must_use]

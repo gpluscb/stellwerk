@@ -55,7 +55,6 @@ impl<'de> Deserialize<'de> for UserHandle {
         D: Deserializer<'de>,
     {
         let inner = String::deserialize(deserializer)?;
-        UserHandle::new(inner)
-            .map_err(|err| Error::invalid_value(Unexpected::Str(&err.0), &"UserHandle"))
+        Self::new(inner).map_err(|err| Error::invalid_value(Unexpected::Str(&err.0), &"UserHandle"))
     }
 }
