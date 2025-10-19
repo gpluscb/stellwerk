@@ -7,6 +7,8 @@ use axum::{
     http::{StatusCode, Uri},
     response::{IntoResponse, Response},
 };
+use json::Json;
+use serde::{Deserialize, Serialize};
 use socialmediathingnametbd_common::model::{Id, post::PostMarker, user::UserMarker};
 use socialmediathingnametbd_db::client::{DbClient, DbError};
 use std::sync::Arc;
@@ -66,12 +68,20 @@ impl ServerError {
     }
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+struct ErrorResponse {
+    status: u16,
+}
+
 impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
         let status = self.status();
 
         error!(error = %self, %status, "Replying with error");
 
-        (status, format!("Error: {status}")).into_response()
+        let error_response = ErrorResponse {
+            status: status.as_u16(),
+        };
+        (status, Json(error_response)).into_response()
     }
 }
