@@ -1,6 +1,9 @@
 use axum::{
     Router,
-    extract::{FromRef, rejection::PathRejection},
+    extract::{
+        FromRef,
+        rejection::{JsonRejection, PathRejection},
+    },
     http::StatusCode,
     response::{IntoResponse, Response},
 };
@@ -10,6 +13,7 @@ use std::sync::Arc;
 use thiserror::Error;
 use tracing::error;
 
+mod json;
 mod routes;
 
 pub type ServerRouter = Router<ServerState>;
@@ -29,6 +33,10 @@ pub type Result<T, E = ServerError> = std::result::Result<T, E>;
 pub enum ServerError {
     #[error("Path rejected: {0}")]
     PathRejection(#[from] PathRejection),
+    #[error("Incoming JSON rejected: {0}")]
+    JsonRejection(#[from] JsonRejection),
+    #[error("JSON response could not be serialized: {0}")]
+    JsonResponse(#[from] serde_json::Error),
     #[error(transparent)]
     Database(#[from] DbError),
     #[error("Post with id {0} was not found.")]
@@ -43,7 +51,10 @@ impl ServerError {
             ServerError::PathRejection(_)
             | ServerError::PostByIdNotFound(_)
             | ServerError::UserByIdNotFound(_) => StatusCode::NOT_FOUND,
-            ServerError::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ServerError::JsonRejection(_) => StatusCode::BAD_REQUEST,
+            ServerError::JsonResponse(_) | ServerError::Database(_) => {
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
         }
     }
 }

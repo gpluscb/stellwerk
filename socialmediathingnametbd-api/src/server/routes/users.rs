@@ -1,5 +1,5 @@
-use crate::server::{Result, ServerError, ServerRouter};
-use axum::{Json, Router, extract::State};
+use crate::server::{Result, ServerError, ServerRouter, json::Json};
+use axum::{Router, extract::State};
 use axum_extra::routing::{RouterExt, TypedPath};
 use serde::Deserialize;
 use socialmediathingnametbd_common::model::{
