@@ -1,10 +1,10 @@
 use axum::{
     Router,
     extract::{
-        FromRef,
+        FromRef, Request,
         rejection::{JsonRejection, PathRejection},
     },
-    http::StatusCode,
+    http::{StatusCode, Uri},
     response::{IntoResponse, Response},
 };
 use socialmediathingnametbd_common::model::{Id, post::PostMarker, user::UserMarker};
@@ -24,13 +24,19 @@ pub struct ServerState {
 }
 
 pub fn routes() -> ServerRouter {
-    routes::routes()
+    routes::routes().fallback(fallback)
+}
+
+pub async fn fallback(request: Request) -> ServerError {
+    ServerError::UnknownRoute(request.into_parts().0.uri)
 }
 
 pub type Result<T, E = ServerError> = std::result::Result<T, E>;
 
 #[derive(Debug, Error)]
 pub enum ServerError {
+    #[error("Unknown route requested: {0}")]
+    UnknownRoute(Uri),
     #[error("Path rejected: {0}")]
     PathRejection(#[from] PathRejection),
     #[error("Incoming JSON rejected: {0}")]
@@ -48,7 +54,8 @@ pub enum ServerError {
 impl ServerError {
     pub fn status(&self) -> StatusCode {
         match self {
-            ServerError::PathRejection(_)
+            ServerError::UnknownRoute(_)
+            | ServerError::PathRejection(_)
             | ServerError::PostByIdNotFound(_)
             | ServerError::UserByIdNotFound(_) => StatusCode::NOT_FOUND,
             ServerError::JsonRejection(_) => StatusCode::BAD_REQUEST,
