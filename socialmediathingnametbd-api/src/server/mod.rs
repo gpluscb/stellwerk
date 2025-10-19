@@ -23,10 +23,10 @@ pub fn routes() -> ServerRouter {
     Router::new().merge(posts::routes()).merge(users::routes())
 }
 
-pub type Result<T, E = Error> = std::result::Result<T, E>;
+pub type Result<T, E = ServerError> = std::result::Result<T, E>;
 
 #[derive(Debug, Error)]
-pub enum Error {
+pub enum ServerError {
     #[error("Path rejected: {0}")]
     PathRejection(#[from] PathRejection),
     #[error(transparent)]
@@ -37,18 +37,18 @@ pub enum Error {
     Users(#[from] users::Error),
 }
 
-impl Error {
+impl ServerError {
     pub fn status(&self) -> StatusCode {
         match self {
-            Error::PathRejection(_) => StatusCode::NOT_FOUND,
-            Error::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            Error::Posts(inner) => inner.status(),
-            Error::Users(inner) => inner.status(),
+            ServerError::PathRejection(_) => StatusCode::NOT_FOUND,
+            ServerError::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ServerError::Posts(inner) => inner.status(),
+            ServerError::Users(inner) => inner.status(),
         }
     }
 }
 
-impl IntoResponse for Error {
+impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
         let status = self.status();
 

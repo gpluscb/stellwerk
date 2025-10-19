@@ -1,4 +1,4 @@
-use crate::server::{Error as ServerError, Result, ServerRouter};
+use crate::server::{Result, ServerError, ServerRouter};
 use axum::{Json, Router, extract::State, http::StatusCode};
 use axum_extra::routing::{RouterExt, TypedPath};
 use serde::Deserialize;
