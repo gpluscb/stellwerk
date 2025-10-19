@@ -4,13 +4,13 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use socialmediathingnametbd_common::model::{Id, post::PostMarker, user::UserMarker};
 use socialmediathingnametbd_db::client::{DbClient, DbError};
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::error;
 
-mod posts;
-mod users;
+mod routes;
 
 pub type ServerRouter = Router<ServerState>;
 
@@ -20,7 +20,7 @@ pub struct ServerState {
 }
 
 pub fn routes() -> ServerRouter {
-    Router::new().merge(posts::routes()).merge(users::routes())
+    routes::routes()
 }
 
 pub type Result<T, E = ServerError> = std::result::Result<T, E>;
@@ -31,19 +31,19 @@ pub enum ServerError {
     PathRejection(#[from] PathRejection),
     #[error(transparent)]
     Database(#[from] DbError),
-    #[error(transparent)]
-    Posts(#[from] posts::Error),
-    #[error(transparent)]
-    Users(#[from] users::Error),
+    #[error("Post with id {0} was not found.")]
+    PostByIdNotFound(Id<PostMarker>),
+    #[error("User with id {0} was not found.")]
+    UserByIdNotFound(Id<UserMarker>),
 }
 
 impl ServerError {
     pub fn status(&self) -> StatusCode {
         match self {
-            ServerError::PathRejection(_) => StatusCode::NOT_FOUND,
+            ServerError::PathRejection(_)
+            | ServerError::PostByIdNotFound(_)
+            | ServerError::UserByIdNotFound(_) => StatusCode::NOT_FOUND,
             ServerError::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            ServerError::Posts(inner) => inner.status(),
-            ServerError::Users(inner) => inner.status(),
         }
     }
 }

@@ -1,5 +1,5 @@
 use crate::server::{Result, ServerError, ServerRouter};
-use axum::{Json, Router, extract::State, http::StatusCode};
+use axum::{Json, Router, extract::State};
 use axum_extra::routing::{RouterExt, TypedPath};
 use serde::Deserialize;
 use socialmediathingnametbd_common::model::{
@@ -9,21 +9,6 @@ use socialmediathingnametbd_common::model::{
 };
 use socialmediathingnametbd_db::client::DbClient;
 use std::sync::Arc;
-use thiserror::Error;
-
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error("User with id {0} was not found.")]
-    UserByIdNotFound(Id<UserMarker>),
-}
-
-impl Error {
-    pub fn status(&self) -> StatusCode {
-        match self {
-            Error::UserByIdNotFound(_) => StatusCode::NOT_FOUND,
-        }
-    }
-}
 
 pub fn routes() -> ServerRouter {
     Router::new().typed_get(get_user).typed_get(get_user_posts)
@@ -42,7 +27,7 @@ async fn get_user(
     let user = db
         .fetch_user(id)
         .await?
-        .ok_or(Error::UserByIdNotFound(id))?;
+        .ok_or(ServerError::UserByIdNotFound(id))?;
 
     Ok(Json(user))
 }
@@ -60,7 +45,7 @@ async fn get_user_posts(
     let posts = db
         .fetch_user_posts(id)
         .await?
-        .ok_or(Error::UserByIdNotFound(id))?;
+        .ok_or(ServerError::UserByIdNotFound(id))?;
 
     Ok(Json(posts))
 }
