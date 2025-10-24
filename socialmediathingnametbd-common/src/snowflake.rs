@@ -14,30 +14,6 @@ use std::{
 use thiserror::Error;
 use time::{Duration, UtcDateTime};
 
-#[allow(clippy::unusual_byte_groupings)]
-pub const TIMESTAMP_BITMASK: u64 =
-    0b111111111111111111111111111111111111111111_00000_00000_000000000000;
-pub const TIMESTAMP_OFFSET: u64 = 22;
-pub const TIMESTAMP_LENGTH: u64 = 42;
-
-#[allow(clippy::unusual_byte_groupings)]
-pub const WORKER_ID_BITMASK: u64 =
-    0b000000000000000000000000000000000000000000_11111_00000_000000000000;
-pub const WORKER_ID_OFFSET: u64 = 17;
-pub const WORKER_ID_LENGTH: u64 = 5;
-
-#[allow(clippy::unusual_byte_groupings)]
-pub const PROCESS_ID_BITMASK: u64 =
-    0b000000000000000000000000000000000000000000_00000_11111_000000000000;
-pub const PROCESS_ID_OFFSET: u64 = 12;
-pub const PROCESS_ID_LENGTH: u64 = 5;
-
-#[allow(clippy::unusual_byte_groupings)]
-pub const INCREMENT_BITMASK: u64 =
-    0b000000000000000000000000000000000000000000_00000_00000_111111111111;
-pub const INCREMENT_OFFSET: u64 = 0;
-pub const INCREMENT_LENGTH: u64 = 12;
-
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Hash, Error)]
 pub enum SnowflakeTimestampFromDateTimeError {
     #[error("Specified time was before the snowflake epoch.")]
@@ -55,30 +31,32 @@ pub trait Epoch {
 pub struct SnowflakePartOutOfRangeError<TInt>(TInt);
 
 macro_rules! snowflake_part {
-    ($name:ident: $repr:ty = (snowflake | $bitmask:ident) >> $offset:ident;
-        len = $length:ident) => {
+    ($name:ident: $repr:ty = snowflake & $bitmask:literal) => {
         #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash, Serialize)]
         pub struct $name($repr);
 
-        __snowflake_part_impls!($name<>: $repr = (snowflake | $bitmask) >> $offset; len = $length);
+        __snowflake_part_impls!($name<>: $repr = snowflake & $bitmask);
     };
-    ($name:ident<SnowflakeEpoch>: $repr:ty = (snowflake | $bitmask:ident) >> $offset:ident;
-        len = $length:ident) => {
+    ($name:ident<SnowflakeEpoch>: $repr:ty = snowflake & $bitmask:literal) => {
         #[derive_where(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash, Serialize)]
         pub struct $name<SnowflakeEpoch>($repr, PhantomData<SnowflakeEpoch>);
 
-        __snowflake_part_impls!($name<SnowflakeEpoch>: $repr = (snowflake | $bitmask) >> $offset; len = $length);
+        __snowflake_part_impls!($name<SnowflakeEpoch>: $repr = snowflake & $bitmask);
     };
 }
 
 macro_rules! __snowflake_part_impls {
-    ($name:ident<$($generic:ident)?>: $repr:ty = (snowflake | $bitmask:ident) >> $offset:ident;
-        len = $length:ident) => {
+    ($name:ident<$($generic:ident)?>: $repr:ty = snowflake & $bitmask:literal) => {
 
         impl$(<$generic>)? $name$(<$generic>)? {
+            const SNOWFLAKE_BITMASK: u64 = $bitmask;
+            const SNOWFLAKE_OFFSET: u64 = Self::SNOWFLAKE_BITMASK.trailing_zeros() as u64;
+            const BIT_COUNT: u64 = Self::SNOWFLAKE_BITMASK.count_ones() as u64;
+            const MAX_VALUE: $repr = (1 << Self::BIT_COUNT) - 1;
+
             #[must_use]
             pub fn new(value: $repr) -> Option<Self> {
-                (value < 1 << $length).then_some(Self(value, $(PhantomData::<$generic>)?))
+                (value <= Self::MAX_VALUE).then_some(Self(value, $(PhantomData::<$generic>)?))
             }
 
             #[must_use]
@@ -95,7 +73,9 @@ macro_rules! __snowflake_part_impls {
         impl<SnowflakeEpoch> From<Snowflake<SnowflakeEpoch>> for $name$(<$generic>)? {
             fn from(value: Snowflake<SnowflakeEpoch>) -> Self {
                 #[allow(clippy::cast_possible_truncation)]
-                Self::new_unchecked(((value.get() & $bitmask) >> $offset) as $repr)
+                Self::new_unchecked(
+                    ((value.get() & Self::SNOWFLAKE_BITMASK) >> Self::SNOWFLAKE_OFFSET) as $repr
+                )
             }
         }
 
@@ -121,14 +101,10 @@ macro_rules! __snowflake_part_impls {
     };
 }
 
-snowflake_part!(WorkerId: u8 = (snowflake | WORKER_ID_BITMASK) >> WORKER_ID_OFFSET;
-    len = WORKER_ID_LENGTH);
-snowflake_part!(ProcessId: u8 = (snowflake | PROCESS_ID_BITMASK) >> PROCESS_ID_OFFSET;
-    len = PROCESS_ID_LENGTH);
-snowflake_part!(SnowflakeIncrement: u16 = (snowflake | INCREMENT_BITMASK) >> INCREMENT_OFFSET;
-    len = INCREMENT_LENGTH);
-snowflake_part!(SnowflakeTimestamp<SnowflakeEpoch>: u64 = (snowflake | TIMESTAMP_BITMASK) >> TIMESTAMP_OFFSET;
-    len = TIMESTAMP_LENGTH);
+snowflake_part!(WorkerId: u8 = snowflake & 0x0000_0000_003E_0000);
+snowflake_part!(ProcessId: u8 = snowflake & 0x0000_0000_0001_F000);
+snowflake_part!(SnowflakeIncrement: u16 = snowflake & 0x0000_0000_0000_0FFF);
+snowflake_part!(SnowflakeTimestamp<SnowflakeEpoch>: u64 = snowflake & 0xFFFF_FFFF_FFC0_0000);
 
 #[derive_where(
     Copy,
@@ -149,7 +125,7 @@ pub struct Snowflake<SnowflakeEpoch>(u64, #[serde(skip)] PhantomData<SnowflakeEp
 impl SnowflakeIncrement {
     #[must_use]
     pub fn next(self) -> Self {
-        Self((self.0 + 1) % (1 << INCREMENT_LENGTH))
+        Self((self.0 + 1) % (1 << Self::BIT_COUNT))
     }
 
     pub fn increment(&mut self) {
@@ -215,10 +191,10 @@ impl<SnowflakeEpoch> Snowflake<SnowflakeEpoch> {
         process_id: ProcessId,
         increment: SnowflakeIncrement,
     ) -> Self {
-        let snowflake = timestamp.get() << TIMESTAMP_OFFSET
-            | u64::from(worker_id.get()) << WORKER_ID_OFFSET
-            | u64::from(process_id.get()) << PROCESS_ID_OFFSET
-            | u64::from(increment.get()) << INCREMENT_OFFSET;
+        let snowflake = timestamp.get() << SnowflakeTimestamp::<SnowflakeEpoch>::SNOWFLAKE_OFFSET
+            | u64::from(worker_id.get()) << WorkerId::SNOWFLAKE_OFFSET
+            | u64::from(process_id.get()) << ProcessId::SNOWFLAKE_OFFSET
+            | u64::from(increment.get()) << SnowflakeIncrement::SNOWFLAKE_OFFSET;
 
         Snowflake(snowflake, PhantomData)
     }
@@ -235,19 +211,16 @@ impl<SnowflakeEpoch> Snowflake<SnowflakeEpoch> {
 
     #[must_use]
     pub fn worker_id(self) -> WorkerId {
-        #[allow(clippy::cast_possible_truncation)]
         self.into()
     }
 
     #[must_use]
     pub fn process_id(self) -> ProcessId {
-        #[allow(clippy::cast_possible_truncation)]
         self.into()
     }
 
     #[must_use]
     pub fn increment(self) -> SnowflakeIncrement {
-        #[allow(clippy::cast_possible_truncation)]
         self.into()
     }
 
