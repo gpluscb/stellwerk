@@ -77,13 +77,13 @@ macro_rules! __snowflake_part_impls {
 
         impl$(<$generic>)? $name$(<$generic>)? {
             #[must_use]
-            pub fn new(id: $repr) -> Option<Self> {
-                (id < 1 << $length).then_some(Self(id, $(PhantomData::<$generic>)?))
+            pub fn new(value: $repr) -> Option<Self> {
+                (value < 1 << $length).then_some(Self(value, $(PhantomData::<$generic>)?))
             }
 
             #[must_use]
-            pub fn new_unchecked(id: $repr) -> Self {
-                Self::new(id).expect(concat!(stringify!($name), " out of range."))
+            pub fn new_unchecked(value: $repr) -> Self {
+                Self::new(value).expect(concat!(stringify!($name), " out of range."))
             }
 
             #[must_use]
