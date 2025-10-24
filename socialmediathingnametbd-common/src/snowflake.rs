@@ -95,7 +95,7 @@ macro_rules! __snowflake_part_impls {
         impl<SnowflakeEpoch> From<Snowflake<SnowflakeEpoch>> for $name$(<$generic>)? {
             fn from(value: Snowflake<SnowflakeEpoch>) -> Self {
                 #[allow(clippy::cast_possible_truncation)]
-                Self::new_unchecked(((value.get() | $bitmask) >> $offset) as $repr)
+                Self::new_unchecked(((value.get() & $bitmask) >> $offset) as $repr)
             }
         }
 
@@ -186,7 +186,7 @@ impl<SnowflakeEpoch: Epoch> TryFrom<UtcDateTime> for SnowflakeTimestamp<Snowflak
     type Error = SnowflakeTimestampFromDateTimeError;
 
     fn try_from(value: UtcDateTime) -> Result<Self, Self::Error> {
-        let millis = (SnowflakeEpoch::EPOCH_TIME - value).whole_milliseconds();
+        let millis = (value - SnowflakeEpoch::EPOCH_TIME).whole_milliseconds();
         if millis < 0 {
             return Err(Self::Error::TimeBeforeEpoch);
         }
