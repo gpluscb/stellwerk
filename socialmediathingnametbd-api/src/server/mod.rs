@@ -7,6 +7,7 @@ use axum::{
     http::{StatusCode, Uri},
     response::{IntoResponse, Response},
 };
+use axum_extra::typed_header::TypedHeaderRejection;
 use json::Json;
 use serde::{Deserialize, Serialize};
 use socialmediathingnametbd_common::model::{Id, post::PostMarker, user::UserMarker};
@@ -15,6 +16,7 @@ use std::sync::Arc;
 use thiserror::Error;
 use tracing::error;
 
+mod auth;
 mod json;
 mod routes;
 
@@ -45,6 +47,10 @@ pub enum ServerError {
     JsonRejection(#[from] JsonRejection),
     #[error("JSON response could not be serialized: {0}")]
     JsonResponse(#[from] serde_json::Error),
+    #[error("Authorization header was missing or invalid: {0}")]
+    InvalidAuthorizationHeader(TypedHeaderRejection),
+    #[error("Provided token was invalid")]
+    InvalidToken,
     #[error(transparent)]
     Database(#[from] DbError),
     #[error("Post with id {0} was not found.")]
@@ -60,7 +66,13 @@ impl ServerError {
             | ServerError::PathRejection(_)
             | ServerError::PostByIdNotFound(_)
             | ServerError::UserByIdNotFound(_) => StatusCode::NOT_FOUND,
-            ServerError::JsonRejection(_) => StatusCode::BAD_REQUEST,
+            ServerError::InvalidAuthorizationHeader(rejection) if rejection.is_missing() => {
+                StatusCode::UNAUTHORIZED
+            }
+            ServerError::InvalidToken => StatusCode::UNAUTHORIZED,
+            ServerError::JsonRejection(_) | ServerError::InvalidAuthorizationHeader(_) => {
+                StatusCode::BAD_REQUEST
+            }
             ServerError::JsonResponse(_) | ServerError::Database(_) => {
                 StatusCode::INTERNAL_SERVER_ERROR
             }

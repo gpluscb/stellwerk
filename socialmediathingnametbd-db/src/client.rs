@@ -1,15 +1,17 @@
-use crate::record::{FullPostRecord, PartialPostRecord, UserRecord};
+use crate::record::{AuthenticationRecord, FullPostRecord, PartialPostRecord, UserRecord};
 use socialmediathingnametbd_common::{
     model::{
         Id, ModelValidationError, SocialmediathingnametbdSnowflakeGenerator,
+        auth::{AuthToken, Authentication},
         post::{CreatePost, PartialPost, Post, PostMarker},
         user::{CreateUser, User, UserHandle, UserMarker},
     },
     snowflake::{ProcessId, WorkerId},
 };
-use sqlx::{PgPool, migrate, migrate::MigrateError, query_as, query_scalar};
+use sqlx::{PgPool, migrate, migrate::MigrateError, query, query_as, query_scalar};
 use std::sync::nonpoison::Mutex;
 use thiserror::Error;
+use time::{PrimitiveDateTime, UtcDateTime};
 
 pub type Result<T, E = DbError> = std::result::Result<T, E>;
 
@@ -202,5 +204,49 @@ impl DbClient {
         .await?;
 
         Ok(returned_snowflake.cast_unsigned().into())
+    }
+
+    pub async fn fetch_auth(&self, token: &AuthToken) -> Result<Option<Authentication>> {
+        let record = query_as!(
+            AuthenticationRecord,
+            "
+            SELECT
+                auth_tokens.user_snowflake,
+                auth_tokens.token,
+                auth_tokens.created_at,
+                auth_tokens.expires_after_seconds
+            FROM
+                auth.auth_tokens
+            WHERE
+                auth_tokens.token = $1
+            ",
+            &token.0
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        let authentication = record.map(Authentication::try_from).transpose()?;
+        Ok(authentication)
+    }
+
+    /// Returns number of affected rows
+    pub async fn drop_expired_tokens(&self) -> Result<u64> {
+        let now_utc = UtcDateTime::now();
+        let now_primitive = PrimitiveDateTime::new(now_utc.date(), now_utc.time());
+
+        let rows_affected = query!(
+            "
+            DELETE FROM auth.auth_tokens
+            WHERE auth_tokens.created_at
+                      + make_interval(secs := auth_tokens.expires_after_seconds)
+                      < $1
+            ",
+            now_primitive,
+        )
+        .execute(&self.pool)
+        .await?
+        .rows_affected();
+
+        Ok(rows_affected)
     }
 }

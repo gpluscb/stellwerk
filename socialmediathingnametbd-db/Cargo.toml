@@ -6,8 +6,9 @@ edition.workspace = true
 [dependencies]
 socialmediathingnametbd-common = { path = "../socialmediathingnametbd-common" }
 
-sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio"] }
+sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio", "time"] }
 thiserror = "2.0.17"
+time = "0.3.44"
 
 [lints]
 workspace = true

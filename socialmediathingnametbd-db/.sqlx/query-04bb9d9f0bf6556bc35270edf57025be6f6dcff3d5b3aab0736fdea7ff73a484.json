@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM auth.auth_tokens\n            WHERE auth_tokens.created_at\n                      + make_interval(secs := auth_tokens.expires_after_seconds)\n                      < $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "04bb9d9f0bf6556bc35270edf57025be6f6dcff3d5b3aab0736fdea7ff73a484"
+}

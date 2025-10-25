@@ -1,17 +1,19 @@
 use socialmediathingnametbd_common::model::{
     ModelValidationError,
+    auth::{AuthToken, Authentication},
     post::{PartialPost, Post},
     user::{User, UserHandle},
 };
+use time::{Duration, PrimitiveDateTime};
 
 #[derive(Clone, Eq, PartialEq, Debug, Default, Hash)]
-pub struct UserRecord {
+pub(crate) struct UserRecord {
     pub user_snowflake: i64,
     pub handle: String,
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Default, Hash)]
-pub struct FullPostRecord {
+pub(crate) struct FullPostRecord {
     pub post_snowflake: i64,
     pub content: String,
     pub user_snowflake: i64,
@@ -19,9 +21,17 @@ pub struct FullPostRecord {
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Default, Hash)]
-pub struct PartialPostRecord {
+pub(crate) struct PartialPostRecord {
     pub post_snowflake: i64,
     pub content: String,
+}
+
+#[derive(Clone, Eq, PartialEq, Debug, Hash)]
+pub(crate) struct AuthenticationRecord {
+    pub user_snowflake: i64,
+    pub token: String,
+    pub created_at: PrimitiveDateTime,
+    pub expires_after_seconds: Option<i64>,
 }
 
 impl TryFrom<UserRecord> for User {
@@ -57,6 +67,22 @@ impl TryFrom<FullPostRecord> for Post {
                 handle: UserHandle::new(value.handle)?,
             },
             content: value.content,
+        })
+    }
+}
+
+impl TryFrom<AuthenticationRecord> for Authentication {
+    type Error = ModelValidationError;
+
+    fn try_from(value: AuthenticationRecord) -> Result<Self, Self::Error> {
+        Ok(Self {
+            user: value.user_snowflake.cast_unsigned().into(),
+            token: AuthToken(value.token),
+            created_at: value.created_at.as_utc(),
+            expires_after: value
+                .expires_after_seconds
+                .map(|seconds| Duration::seconds(seconds).try_into())
+                .transpose()?,
         })
     }
 }

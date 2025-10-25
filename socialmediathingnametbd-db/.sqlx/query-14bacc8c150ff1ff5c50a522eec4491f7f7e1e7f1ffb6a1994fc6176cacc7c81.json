@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                auth_tokens.user_snowflake,\n                auth_tokens.token,\n                auth_tokens.created_at,\n                auth_tokens.expires_after_seconds\n            FROM\n                auth.auth_tokens\n            WHERE\n                auth_tokens.token = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_snowflake",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "token",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 3,
+        "name": "expires_after_seconds",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bpchar"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "14bacc8c150ff1ff5c50a522eec4491f7f7e1e7f1ffb6a1994fc6176cacc7c81"
+}
