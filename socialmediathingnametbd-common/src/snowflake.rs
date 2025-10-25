@@ -289,6 +289,7 @@ impl<SnowflakeEpoch> SnowflakeGenerator<SnowflakeEpoch> {
         self.process_id
     }
 
+    #[must_use]
     pub fn generate_at(&mut self, time: UtcDateTime) -> Snowflake<SnowflakeEpoch>
     where
         SnowflakeEpoch: Epoch,
@@ -304,6 +305,7 @@ impl<SnowflakeEpoch> SnowflakeGenerator<SnowflakeEpoch> {
         )
     }
 
+    #[must_use]
     pub fn generate(&mut self) -> Snowflake<SnowflakeEpoch>
     where
         SnowflakeEpoch: Epoch,
