@@ -220,7 +220,7 @@ impl DbClient {
             WHERE
                 auth_tokens.token_hash = $1
             ",
-            &*token_hash.0,
+            &token_hash.0,
         )
         .fetch_optional(&self.pool)
         .await?;

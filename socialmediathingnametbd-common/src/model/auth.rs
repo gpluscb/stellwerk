@@ -42,7 +42,7 @@ pub struct AuthToken {
 }
 
 #[derive(Clone, Eq, PartialEq, Hash)]
-pub struct AuthTokenHash(pub Box<[u8; AUTH_TOKEN_HASH_LEN]>);
+pub struct AuthTokenHash(pub [u8; AUTH_TOKEN_HASH_LEN]);
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Authentication {
@@ -77,9 +77,9 @@ impl AuthToken {
     pub fn hash(&self) -> Result<AuthTokenHash, AuthTokenHashError> {
         let argon2 = Argon2::default();
 
-        let mut hash = Box::new([0; AUTH_TOKEN_HASH_LEN]);
+        let mut hash = [0; AUTH_TOKEN_HASH_LEN];
         argon2
-            .hash_password_into(&self.core, &self.salt, &mut *hash)
+            .hash_password_into(&self.core, &self.salt, &mut hash)
             .map_err(AuthTokenHashError)?;
 
         Ok(AuthTokenHash(hash))
@@ -140,7 +140,7 @@ impl TryFrom<Box<[u8]>> for AuthTokenHash {
 
     fn try_from(value: Box<[u8]>) -> Result<Self, Self::Error> {
         Ok(Self(
-            value.try_into().map_err(|_| InvalidAuthTokenHashError)?,
+            *Box::try_from(value).map_err(|_| InvalidAuthTokenHashError)?,
         ))
     }
 }
