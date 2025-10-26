@@ -2,7 +2,7 @@ use crate::record::{AuthenticationRecord, FullPostRecord, PartialPostRecord, Use
 use socialmediathingnametbd_common::{
     model::{
         Id, ModelValidationError, SocialmediathingnametbdSnowflakeGenerator,
-        auth::{AuthToken, Authentication},
+        auth::{AuthTokenHash, Authentication},
         post::{CreatePost, PartialPost, Post, PostMarker},
         user::{CreateUser, User, UserHandle, UserMarker},
     },
@@ -206,21 +206,21 @@ impl DbClient {
         Ok(returned_snowflake.cast_unsigned().into())
     }
 
-    pub async fn fetch_auth(&self, token: &AuthToken) -> Result<Option<Authentication>> {
+    pub async fn fetch_auth(&self, token_hash: &AuthTokenHash) -> Result<Option<Authentication>> {
         let record = query_as!(
             AuthenticationRecord,
             "
             SELECT
                 auth_tokens.user_snowflake,
-                auth_tokens.token,
+                auth_tokens.token_hash,
                 auth_tokens.created_at,
                 auth_tokens.expires_after_seconds
             FROM
                 auth.auth_tokens
             WHERE
-                auth_tokens.token = $1
+                auth_tokens.token_hash = $1
             ",
-            &token.0
+            &*token_hash.0,
         )
         .fetch_optional(&self.pool)
         .await?;

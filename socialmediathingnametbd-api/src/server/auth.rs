@@ -7,7 +7,7 @@ use axum_extra::TypedHeader;
 use headers::{Authorization, authorization::Bearer};
 use socialmediathingnametbd_common::model::{Id, auth::AuthToken, user::UserMarker};
 use socialmediathingnametbd_db::client::DbClient;
-use std::sync::Arc;
+use std::{hash::Hash, sync::Arc};
 use time::UtcDateTime;
 
 type AuthorizationHeader = TypedHeader<Authorization<Bearer>>;
@@ -32,20 +32,21 @@ where
     type Rejection = ServerError;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let request_token = AuthToken(
-            AuthorizationHeader::from_request_parts(parts, state)
-                .await
-                .map_err(ServerError::InvalidAuthorizationHeader)?
-                .token()
-                .to_string(),
-        );
+        let request_token: AuthToken = AuthorizationHeader::from_request_parts(parts, state)
+            .await
+            .map_err(ServerError::InvalidAuthorizationHeader)?
+            .token()
+            .to_string()
+            .parse()?;
+
+        let token_hash = request_token.hash()?;
 
         let authentication = Arc::<DbClient>::from_ref(state)
-            .fetch_auth(&request_token)
+            .fetch_auth(&token_hash)
             .await?
             .ok_or(ServerError::InvalidToken)?;
 
-        assert_eq!(authentication.token, request_token);
+        assert_eq!(authentication.token_hash, token_hash);
 
         if let Some(expires_after) = authentication.expires_after
             && authentication.created_at + expires_after.get() < UtcDateTime::now()

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                auth_tokens.user_snowflake,\n                auth_tokens.token,\n                auth_tokens.created_at,\n                auth_tokens.expires_after_seconds\n            FROM\n                auth.auth_tokens\n            WHERE\n                auth_tokens.token = $1\n            ",
+  "query": "\n            SELECT\n                auth_tokens.user_snowflake,\n                auth_tokens.token_hash,\n                auth_tokens.created_at,\n                auth_tokens.expires_after_seconds\n            FROM\n                auth.auth_tokens\n            WHERE\n                auth_tokens.token_hash = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -10,8 +10,8 @@
       },
       {
         "ordinal": 1,
-        "name": "token",
-        "type_info": "Bpchar"
+        "name": "token_hash",
+        "type_info": "Bytea"
       },
       {
         "ordinal": 2,
@@ -26,7 +26,7 @@
     ],
     "parameters": {
       "Left": [
-        "Bpchar"
+        "Bytea"
       ]
     },
     "nullable": [
@@ -36,5 +36,5 @@
       true
     ]
   },
-  "hash": "14bacc8c150ff1ff5c50a522eec4491f7f7e1e7f1ffb6a1994fc6176cacc7c81"
+  "hash": "f5df55e09412126bf7cd7ab9cc81a41392e35e2a24980a51b5d25cfc3e377fd6"
 }

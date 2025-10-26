@@ -1,6 +1,6 @@
 use socialmediathingnametbd_common::model::{
     ModelValidationError,
-    auth::{AuthToken, Authentication},
+    auth::Authentication,
     post::{PartialPost, Post},
     user::{User, UserHandle},
 };
@@ -29,7 +29,7 @@ pub(crate) struct PartialPostRecord {
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub(crate) struct AuthenticationRecord {
     pub user_snowflake: i64,
-    pub token: String,
+    pub token_hash: Box<[u8]>,
     pub created_at: PrimitiveDateTime,
     pub expires_after_seconds: Option<i64>,
 }
@@ -77,7 +77,7 @@ impl TryFrom<AuthenticationRecord> for Authentication {
     fn try_from(value: AuthenticationRecord) -> Result<Self, Self::Error> {
         Ok(Self {
             user: value.user_snowflake.cast_unsigned().into(),
-            token: AuthToken(value.token),
+            token_hash: value.token_hash.try_into()?,
             created_at: value.created_at.as_utc(),
             expires_after: value
                 .expires_after_seconds

@@ -10,7 +10,12 @@ use axum::{
 use axum_extra::typed_header::TypedHeaderRejection;
 use json::Json;
 use serde::{Deserialize, Serialize};
-use socialmediathingnametbd_common::model::{Id, post::PostMarker, user::UserMarker};
+use socialmediathingnametbd_common::model::{
+    Id,
+    auth::{AuthTokenDecodeError, AuthTokenHashError},
+    post::PostMarker,
+    user::UserMarker,
+};
 use socialmediathingnametbd_db::client::{DbClient, DbError};
 use std::sync::Arc;
 use thiserror::Error;
@@ -49,6 +54,10 @@ pub enum ServerError {
     JsonResponse(#[from] serde_json::Error),
     #[error("Authorization header was missing or invalid: {0}")]
     InvalidAuthorizationHeader(TypedHeaderRejection),
+    #[error("The provided auth token could not be decoded: {0}")]
+    InvalidAuthToken(#[from] AuthTokenDecodeError),
+    #[error("The auth token could not be hashed: {0}")]
+    AuthTokenHash(#[from] AuthTokenHashError),
     #[error("Provided token was invalid")]
     InvalidToken,
     #[error(transparent)]
@@ -70,12 +79,12 @@ impl ServerError {
                 StatusCode::UNAUTHORIZED
             }
             ServerError::InvalidToken => StatusCode::UNAUTHORIZED,
-            ServerError::JsonRejection(_) | ServerError::InvalidAuthorizationHeader(_) => {
-                StatusCode::BAD_REQUEST
-            }
-            ServerError::JsonResponse(_) | ServerError::Database(_) => {
-                StatusCode::INTERNAL_SERVER_ERROR
-            }
+            ServerError::JsonRejection(_)
+            | ServerError::InvalidAuthorizationHeader(_)
+            | ServerError::InvalidAuthToken(_) => StatusCode::BAD_REQUEST,
+            ServerError::JsonResponse(_)
+            | ServerError::Database(_)
+            | ServerError::AuthTokenHash(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

@@ -3,7 +3,7 @@ pub mod post;
 pub mod user;
 
 use crate::{
-    model::user::InvalidUserHandleError,
+    model::{auth::InvalidAuthTokenHashError, user::InvalidUserHandleError},
     snowflake::{Epoch, Snowflake, SnowflakeGenerator},
     util::NonPositiveDurationError,
 };
@@ -18,6 +18,8 @@ pub enum ModelValidationError {
     UserHandle(#[from] InvalidUserHandleError),
     #[error(transparent)]
     NonPositiveDuration(#[from] NonPositiveDurationError),
+    #[error(transparent)]
+    TokenHash(#[from] InvalidAuthTokenHashError),
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash)]
