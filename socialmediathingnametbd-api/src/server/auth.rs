@@ -36,7 +36,6 @@ where
             .await
             .map_err(ServerError::InvalidAuthorizationHeader)?
             .token()
-            .to_string()
             .parse()?;
 
         let token_hash = request_token.hash()?;
