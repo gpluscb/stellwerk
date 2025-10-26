@@ -41,7 +41,7 @@ pub struct AuthToken {
     pub salt: [u8; AUTH_TOKEN_SALT_LEN],
 }
 
-#[derive(Clone, Eq, PartialEq, Debug, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct AuthTokenHash(pub Box<[u8; AUTH_TOKEN_HASH_LEN]>);
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
@@ -122,6 +122,12 @@ impl Debug for AuthToken {
             .field("core", &"[redacted]")
             .field("salt", &"[redacted]")
             .finish()
+    }
+}
+
+impl Debug for AuthTokenHash {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("AuthTokenHash").field(&"[redacted]").finish()
     }
 }
 
