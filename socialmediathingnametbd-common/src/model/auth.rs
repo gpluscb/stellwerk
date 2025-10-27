@@ -85,6 +85,7 @@ impl AuthToken {
         Ok(AuthTokenHash(hash))
     }
 }
+
 impl FromStr for AuthToken {
     type Err = AuthTokenDecodeError;
 
@@ -142,5 +143,44 @@ impl TryFrom<Box<[u8]>> for AuthTokenHash {
         Ok(Self(
             *Box::try_from(value).map_err(|_| InvalidAuthTokenHashError)?,
         ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::model::{
+        Id,
+        auth::{AuthToken, AuthTokenHash},
+    };
+
+    #[test]
+    fn decode_and_hash() {
+        let token_string = "1:2VWNv7xqSicbpIV8DCUtT6u0RkAjQn/W:LhYSfJCzxaXOxitvG5bET16L";
+
+        let auth_token: AuthToken = token_string.parse().unwrap();
+
+        assert_eq!(
+            auth_token,
+            AuthToken {
+                user_id: Id::from(1),
+                core: [
+                    0xd9, 0x55, 0x8d, 0xbf, 0xbc, 0x6a, 0x4a, 0x27, 0x1b, 0xa4, 0x85, 0x7c, 0x0c,
+                    0x25, 0x2d, 0x4f, 0xab, 0xb4, 0x46, 0x40, 0x23, 0x42, 0x7f, 0xd6,
+                ],
+                salt: [
+                    0x2e, 0x16, 0x12, 0x7c, 0x90, 0xb3, 0xc5, 0xa5, 0xce, 0xc6, 0x2b, 0x6f, 0x1b,
+                    0x96, 0xc4, 0x4f, 0x5e, 0x8b,
+                ],
+            }
+        );
+
+        assert_eq!(
+            auth_token.hash().unwrap(),
+            AuthTokenHash([
+                0xd0, 0x10, 0xe5, 0x1d, 0xa3, 0xae, 0x23, 0xc2, 0x85, 0xab, 0xe4, 0x8d, 0xbc, 0xe5,
+                0x8f, 0x85, 0x13, 0x82, 0x8b, 0xb7, 0x3e, 0x71, 0xa7, 0x7d, 0x2c, 0x94, 0xcd, 0xd0,
+                0x27, 0x81, 0xec, 0x6b,
+            ])
+        );
     }
 }
