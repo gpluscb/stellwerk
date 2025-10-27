@@ -1,3 +1,4 @@
+use crate::server::auth::AuthenticationRejection;
 use axum::{
     Router,
     extract::{
@@ -7,15 +8,9 @@ use axum::{
     http::{StatusCode, Uri},
     response::{IntoResponse, Response},
 };
-use axum_extra::typed_header::TypedHeaderRejection;
 use json::Json;
 use serde::{Deserialize, Serialize};
-use socialmediathingnametbd_common::model::{
-    Id,
-    auth::{AuthTokenDecodeError, AuthTokenHashError},
-    post::PostMarker,
-    user::UserMarker,
-};
+use socialmediathingnametbd_common::model::{Id, post::PostMarker, user::UserMarker};
 use socialmediathingnametbd_db::client::{DbClient, DbError};
 use std::sync::Arc;
 use thiserror::Error;
@@ -52,14 +47,8 @@ pub enum ServerError {
     JsonRejection(#[from] JsonRejection),
     #[error("JSON response could not be serialized: {0}")]
     JsonResponse(#[from] serde_json::Error),
-    #[error("Authorization header was missing or invalid: {0}")]
-    InvalidAuthorizationHeader(TypedHeaderRejection),
-    #[error("The provided auth token could not be decoded: {0}")]
-    InvalidAuthToken(#[from] AuthTokenDecodeError),
-    #[error("The auth token could not be hashed: {0}")]
-    AuthTokenHash(#[from] AuthTokenHashError),
-    #[error("Provided token was invalid")]
-    InvalidToken,
+    #[error(transparent)]
+    AuthenticationRejection(#[from] AuthenticationRejection),
     #[error(transparent)]
     Database(#[from] DbError),
     #[error("Post with id {0} was not found.")]
@@ -71,20 +60,15 @@ pub enum ServerError {
 impl ServerError {
     pub fn status(&self) -> StatusCode {
         match self {
+            ServerError::AuthenticationRejection(rejection) => rejection.status(),
             ServerError::UnknownRoute(_)
             | ServerError::PathRejection(_)
             | ServerError::PostByIdNotFound(_)
             | ServerError::UserByIdNotFound(_) => StatusCode::NOT_FOUND,
-            ServerError::InvalidAuthorizationHeader(rejection) if rejection.is_missing() => {
-                StatusCode::UNAUTHORIZED
+            ServerError::JsonRejection(_) => StatusCode::BAD_REQUEST,
+            ServerError::JsonResponse(_) | ServerError::Database(_) => {
+                StatusCode::INTERNAL_SERVER_ERROR
             }
-            ServerError::InvalidToken => StatusCode::UNAUTHORIZED,
-            ServerError::JsonRejection(_)
-            | ServerError::InvalidAuthorizationHeader(_)
-            | ServerError::InvalidAuthToken(_) => StatusCode::BAD_REQUEST,
-            ServerError::JsonResponse(_)
-            | ServerError::Database(_)
-            | ServerError::AuthTokenHash(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
