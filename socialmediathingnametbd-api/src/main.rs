@@ -1,3 +1,5 @@
+#![feature(duration_constructors)]
+
 mod server;
 
 use crate::server::ServerState;
@@ -9,9 +11,10 @@ use std::{
     sync::Arc,
 };
 use thiserror::Error;
-use tokio::{signal, signal::unix::SignalKind};
+use tokio::{signal, signal::unix::SignalKind, task::JoinError};
+use tokio_util::sync::CancellationToken;
 use tower_http::trace::TraceLayer;
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Debug, Error)]
@@ -28,6 +31,8 @@ enum InitError {
     SignalHandler(std::io::Error),
     #[error("Database connection and migration failed: {0}")]
     DatabaseInitialization(DbError),
+    #[error("A background task had issues: {0}")]
+    Join(#[from] JoinError),
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Deserialize)]
@@ -76,6 +81,22 @@ async fn init_state(env: &Env) -> Result<ServerState, InitError> {
     })
 }
 
+async fn db_prune_loop(db: Arc<DbClient>, cancellation: CancellationToken) {
+    loop {
+        match db.drop_expired_tokens().await {
+            Ok(dropped_rows) => debug!("Dropped {dropped_rows} expired tokens"),
+            Err(error) => error!(%error, "Error trying to drop expired tokens"),
+        }
+        if cancellation
+            .run_until_cancelled(tokio::time::sleep(std::time::Duration::from_days(1)))
+            .await
+            .is_none()
+        {
+            return;
+        }
+    }
+}
+
 fn await_shutdown() -> Result<impl Future<Output = ()>, InitError> {
     #[cfg(unix)]
     let mut ctrl_c_signal =
@@ -110,6 +131,7 @@ async fn main() -> Result<(), InitError> {
     let env = get_env()?;
 
     let state = init_state(&env).await?;
+    let db_client = state.db_client.clone();
     let tracing_layer = TraceLayer::new_for_http();
     let app = server::routes().layer(tracing_layer).with_state(state);
 
@@ -118,10 +140,18 @@ async fn main() -> Result<(), InitError> {
         .await
         .map_err(InitError::TcpBind)?;
     info!("Listening on {server_address}");
+
+    let cancellation_token = CancellationToken::new();
+    let db_prune_loop_handle = tokio::spawn(db_prune_loop(db_client, cancellation_token.clone()));
+    info!("Started database prune loop");
+
     axum::serve(listener, app)
         .with_graceful_shutdown(await_shutdown()?)
         .await
         .map_err(InitError::TcpServe)?;
+
+    cancellation_token.cancel();
+    db_prune_loop_handle.await?;
 
     Ok(())
 }

@@ -1,5 +1,5 @@
 use crate::server::{Result, ServerError, ServerRouter, json::Json};
-use axum::{Router, extract::State};
+use axum::extract::State;
 use axum_extra::routing::{RouterExt, TypedPath};
 use serde::Deserialize;
 use socialmediathingnametbd_common::model::{
@@ -11,7 +11,9 @@ use socialmediathingnametbd_db::client::DbClient;
 use std::sync::Arc;
 
 pub fn routes() -> ServerRouter {
-    Router::new().typed_get(get_user).typed_get(get_user_posts)
+    ServerRouter::new()
+        .typed_get(get_user)
+        .typed_get(get_user_posts)
 }
 
 #[derive(TypedPath, Deserialize)]

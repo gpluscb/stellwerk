@@ -1,3 +1,4 @@
+use crate::server::auth::AuthenticationRejection;
 use axum::{
     Router,
     extract::{
@@ -15,6 +16,7 @@ use std::sync::Arc;
 use thiserror::Error;
 use tracing::error;
 
+mod auth;
 mod json;
 mod routes;
 
@@ -46,6 +48,8 @@ pub enum ServerError {
     #[error("JSON response could not be serialized: {0}")]
     JsonResponse(#[from] serde_json::Error),
     #[error(transparent)]
+    AuthenticationRejection(#[from] AuthenticationRejection),
+    #[error(transparent)]
     Database(#[from] DbError),
     #[error("Post with id {0} was not found.")]
     PostByIdNotFound(Id<PostMarker>),
@@ -56,6 +60,7 @@ pub enum ServerError {
 impl ServerError {
     pub fn status(&self) -> StatusCode {
         match self {
+            ServerError::AuthenticationRejection(rejection) => rejection.status(),
             ServerError::UnknownRoute(_)
             | ServerError::PathRejection(_)
             | ServerError::PostByIdNotFound(_)

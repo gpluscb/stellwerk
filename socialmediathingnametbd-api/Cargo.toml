@@ -16,10 +16,11 @@ tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 tower-http = { version = "0.6", features = ["trace"] }
 tokio = { version = "1.47.1", features = ["rt-multi-thread", "macros", "signal"] }
+tokio-util = "0.7.16"
 axum = { version = "0.8.6", features = ["macros"] }
-axum-server = "0.7.2"
 axum-extra = { version = "0.10.3", features = ["typed-header", "typed-routing"] }
 headers = "0.4.1"
+time = "0.3.44"
 
 [lints]
 workspace = true

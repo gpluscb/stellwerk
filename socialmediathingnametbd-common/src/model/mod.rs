@@ -1,9 +1,11 @@
+pub mod auth;
 pub mod post;
 pub mod user;
 
 use crate::{
-    model::user::InvalidUserHandleError,
+    model::{auth::InvalidAuthTokenHashError, user::InvalidUserHandleError},
     snowflake::{Epoch, Snowflake, SnowflakeGenerator},
+    util::NonPositiveDurationError,
 };
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, marker::PhantomData};
@@ -14,6 +16,10 @@ use time::{UtcDateTime, macros::utc_datetime};
 pub enum ModelValidationError {
     #[error(transparent)]
     UserHandle(#[from] InvalidUserHandleError),
+    #[error(transparent)]
+    NonPositiveDuration(#[from] NonPositiveDurationError),
+    #[error(transparent)]
+    TokenHash(#[from] InvalidAuthTokenHashError),
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash)]
