@@ -2,23 +2,45 @@ use crate::{
     model::{Id, user::UserMarker},
     util::PositiveDuration,
 };
-use argon2::{Argon2, Params};
+use argon2::{Algorithm, Argon2, Params, Version};
 use base64::{DecodeError, Engine, display::Base64Display, prelude::BASE64_STANDARD};
 use std::{
     fmt::{Debug, Formatter},
     num::ParseIntError,
     str::FromStr,
+    sync::LazyLock,
 };
 use thiserror::Error;
 use time::UtcDateTime;
 
-pub const AUTH_TOKEN_CORE_LEN: usize = 24;
-pub const AUTH_TOKEN_SALT_LEN: usize = 18;
-pub const AUTH_TOKEN_HASH_LEN: usize = Params::DEFAULT_OUTPUT_LEN;
+// The values here (except for the core length for which there is no recommendation)
+// are at least as recommended by the argon2 crate.
+const AUTH_TOKEN_CORE_LEN: usize = 24;
+const AUTH_TOKEN_SALT_LEN: usize = 18;
+const AUTH_TOKEN_HASH_LEN: usize = 32;
+const ARGON_2_ALGORITHM: Algorithm = Algorithm::Argon2id;
+const ARGON_2_VERSION: Version = Version::V0x13;
+const ARGON_2_M_COST: u32 = 19 * 1024;
+const ARGON_2_T_COST: u32 = 2;
+const ARGON_2_P_COST: u32 = 1;
+
+static ARGON_2: LazyLock<Argon2> = LazyLock::new(|| {
+    Argon2::new(
+        ARGON_2_ALGORITHM,
+        ARGON_2_VERSION,
+        Params::new(
+            ARGON_2_M_COST,
+            ARGON_2_T_COST,
+            ARGON_2_P_COST,
+            Some(AUTH_TOKEN_HASH_LEN),
+        )
+        .expect("Invalid Argon2 parameters"),
+    )
+});
 
 #[derive(Clone, Eq, PartialEq, Debug, Error)]
 #[error("Hashing auth token failed: {0}")]
-pub struct AuthTokenHashError(argon2::Error);
+pub struct AuthTokenHashError(#[from] argon2::Error);
 
 #[derive(Clone, Eq, PartialEq, Debug, Error)]
 pub enum AuthTokenDecodeError {
@@ -75,12 +97,8 @@ impl AuthToken {
     }
 
     pub fn hash(&self) -> Result<AuthTokenHash, AuthTokenHashError> {
-        let argon2 = Argon2::default();
-
         let mut hash = [0; AUTH_TOKEN_HASH_LEN];
-        argon2
-            .hash_password_into(&self.core, &self.salt, &mut hash)
-            .map_err(AuthTokenHashError)?;
+        ARGON_2.hash_password_into(&self.core, &self.salt, &mut hash)?;
 
         Ok(AuthTokenHash(hash))
     }
