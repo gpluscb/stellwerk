@@ -4,12 +4,12 @@ mod server;
 
 use crate::server::ServerState;
 use serde::Deserialize;
-use socialmediathingnametbd_common::snowflake::{ProcessId, WorkerId};
-use socialmediathingnametbd_db::client::{DbClient, DbError};
 use std::{
     net::{IpAddr, SocketAddr},
     sync::Arc,
 };
+use stellwerk_common::snowflake::{ProcessId, WorkerId};
+use stellwerk_db::client::{DbClient, DbError};
 use thiserror::Error;
 use tokio::{signal, signal::unix::SignalKind, task::JoinError};
 use tokio_util::sync::CancellationToken;
@@ -48,9 +48,9 @@ fn install_tracing() {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                "socialmediathingnametbd_api=debug,\
-                socialmediathingnametbd_common=debug,\
-                socialmediathingnametbd_db=debug,\
+                "stellwerk_api=debug,\
+                stellwerk_common=debug,\
+                stellwerk_db=debug,\
                 tower_http=debug,axum::rejection=trace,sqlx=debug"
                     .into()
             }),

@@ -1,4 +1,4 @@
-use socialmediathingnametbd_common::model::{
+use stellwerk_common::model::{
     ModelValidationError,
     auth::Authentication,
     post::{PartialPost, Post},

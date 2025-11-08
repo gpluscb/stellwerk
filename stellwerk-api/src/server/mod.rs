@@ -10,9 +10,9 @@ use axum::{
 };
 use json::Json;
 use serde::{Deserialize, Serialize};
-use socialmediathingnametbd_common::model::{Id, post::PostMarker, user::UserMarker};
-use socialmediathingnametbd_db::client::{DbClient, DbError};
 use std::sync::Arc;
+use stellwerk_common::model::{Id, post::PostMarker, user::UserMarker};
+use stellwerk_db::client::{DbClient, DbError};
 use thiserror::Error;
 use tracing::error;
 

@@ -1,15 +1,15 @@
 use crate::record::{AuthenticationRecord, FullPostRecord, PartialPostRecord, UserRecord};
-use socialmediathingnametbd_common::{
+use sqlx::{PgPool, migrate, migrate::MigrateError, query, query_as, query_scalar};
+use std::sync::nonpoison::Mutex;
+use stellwerk_common::{
     model::{
-        Id, ModelValidationError, SocialmediathingnametbdSnowflakeGenerator,
+        Id, ModelValidationError, StellwerkSnowflakeGenerator,
         auth::{AuthTokenHash, Authentication},
         post::{CreatePost, PartialPost, Post, PostMarker},
         user::{CreateUser, User, UserHandle, UserMarker},
     },
     snowflake::{ProcessId, WorkerId},
 };
-use sqlx::{PgPool, migrate, migrate::MigrateError, query, query_as, query_scalar};
-use std::sync::nonpoison::Mutex;
 use thiserror::Error;
 use time::{PrimitiveDateTime, UtcDateTime};
 
@@ -28,7 +28,7 @@ pub enum DbError {
 #[derive(Debug)]
 pub struct DbClient {
     pool: PgPool,
-    snowflake_generator: Mutex<SocialmediathingnametbdSnowflakeGenerator>,
+    snowflake_generator: Mutex<StellwerkSnowflakeGenerator>,
 }
 
 impl DbClient {
@@ -45,9 +45,8 @@ impl DbClient {
 
     #[must_use]
     pub fn new(pool: PgPool, worker_id: WorkerId, process_id: ProcessId) -> Self {
-        let snowflake_generator = Mutex::new(SocialmediathingnametbdSnowflakeGenerator::new(
-            worker_id, process_id,
-        ));
+        let snowflake_generator =
+            Mutex::new(StellwerkSnowflakeGenerator::new(worker_id, process_id));
 
         Self {
             pool,

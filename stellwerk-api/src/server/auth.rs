@@ -5,13 +5,13 @@ use axum::{
 };
 use axum_extra::{TypedHeader, typed_header::TypedHeaderRejection};
 use headers::{Authorization, authorization::Bearer};
-use socialmediathingnametbd_common::model::{
+use std::{hash::Hash, sync::Arc};
+use stellwerk_common::model::{
     Id,
     auth::{AuthToken, AuthTokenDecodeError, AuthTokenHashError},
     user::UserMarker,
 };
-use socialmediathingnametbd_db::client::DbClient;
-use std::{hash::Hash, sync::Arc};
+use stellwerk_db::client::DbClient;
 use thiserror::Error;
 use time::UtcDateTime;
 

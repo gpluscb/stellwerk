@@ -1,11 +1,11 @@
 [package]
-name = "socialmediathingnametbd-api"
+name = "stellwerk-api"
 version = "0.1.0"
 edition.workspace = true
 
 [dependencies]
-socialmediathingnametbd-common = { path = "../socialmediathingnametbd-common" }
-socialmediathingnametbd-db = { path = "../socialmediathingnametbd-db" }
+stellwerk-common = { path = "../stellwerk-common" }
+stellwerk-db = { path = "../stellwerk-db" }
 
 dotenvy = "0.15.7"
 envy = "0.4.2"

@@ -2,13 +2,13 @@ use crate::server::{Result, ServerError, ServerRouter, json::Json};
 use axum::extract::State;
 use axum_extra::routing::{RouterExt, TypedPath};
 use serde::Deserialize;
-use socialmediathingnametbd_common::model::{
+use std::sync::Arc;
+use stellwerk_common::model::{
     Id,
     post::PartialPost,
     user::{User, UserMarker},
 };
-use socialmediathingnametbd_db::client::DbClient;
-use std::sync::Arc;
+use stellwerk_db::client::DbClient;
 
 pub fn routes() -> ServerRouter {
     ServerRouter::new()
