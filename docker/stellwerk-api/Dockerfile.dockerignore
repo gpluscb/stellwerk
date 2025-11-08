@@ -1,0 +1,17 @@
+*
+
+!Cargo.toml
+!Cargo.lock
+!rust-toolchain.toml
+
+!stellwerk-api/Cargo.toml
+!stellwerk-api/src
+
+!stellwerk-common/Cargo.toml
+!stellwerk-common/src
+
+!stellwerk-db/.cargo
+!stellwerk-db/.sqlx
+!stellwerk-db/migrations
+!stellwerk-db/Cargo.toml
+!stellwerk-db/src

@@ -1,5 +1,5 @@
 [workspace]
-members = ["socialmediathingnametbd-api", "socialmediathingnametbd-common", "socialmediathingnametbd-db"]
+members = ["stellwerk-api", "stellwerk-common", "stellwerk-db"]
 resolver = "3"
 
 [workspace.package]

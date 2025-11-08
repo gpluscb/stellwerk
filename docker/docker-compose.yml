@@ -1,14 +1,14 @@
-name: socialmediathingnametbd
+name: stellwerk
 
 services:
-  socialmediathingnametbd-api:
+  stellwerk-api:
     build:
       context: ../
-      dockerfile: docker/socialmediathingnametbd-api/Dockerfile
+      dockerfile: docker/stellwerk-api/Dockerfile
       target: final
     network_mode: host
     env_file:
-      - socialmediathingnametbd-api/.env
+      - stellwerk-api/.env
     depends_on:
       postgres:
         condition: service_healthy

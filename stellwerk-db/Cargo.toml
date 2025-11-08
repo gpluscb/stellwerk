@@ -1,10 +1,10 @@
 [package]
-name = "socialmediathingnametbd-db"
+name = "stellwerk-db"
 version = "0.1.0"
 edition.workspace = true
 
 [dependencies]
-socialmediathingnametbd-common = { path = "../socialmediathingnametbd-common" }
+stellwerk-common = { path = "../stellwerk-common" }
 
 sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio", "time"] }
 thiserror = "2.0.17"

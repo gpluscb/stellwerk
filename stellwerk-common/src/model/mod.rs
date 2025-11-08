@@ -23,32 +23,28 @@ pub enum ModelValidationError {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash)]
-pub struct SocialmediathingnametbdEpoch;
-impl Epoch for SocialmediathingnametbdEpoch {
+pub struct StellwerkEpoch;
+impl Epoch for StellwerkEpoch {
     const EPOCH_TIME: UtcDateTime = utc_datetime!(2025-01-01 00:00);
 }
 
-pub type SocialmediathingnametbdSnowflake = Snowflake<SocialmediathingnametbdEpoch>;
-pub type SocialmediathingnametbdSnowflakeGenerator =
-    SnowflakeGenerator<SocialmediathingnametbdEpoch>;
+pub type StellwerkSnowflake = Snowflake<StellwerkEpoch>;
+pub type StellwerkSnowflakeGenerator = SnowflakeGenerator<StellwerkEpoch>;
 
 #[derive(
     Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default, Hash, Serialize, Deserialize,
 )]
 #[serde(transparent)]
-pub struct Id<Marker>(
-    SocialmediathingnametbdSnowflake,
-    #[serde(skip)] PhantomData<Marker>,
-);
+pub struct Id<Marker>(StellwerkSnowflake, #[serde(skip)] PhantomData<Marker>);
 
 impl<Marker> Id<Marker> {
     #[must_use]
-    pub fn new(snowflake: SocialmediathingnametbdSnowflake) -> Self {
+    pub fn new(snowflake: StellwerkSnowflake) -> Self {
         Self(snowflake, PhantomData)
     }
 
     #[must_use]
-    pub fn snowflake(self) -> SocialmediathingnametbdSnowflake {
+    pub fn snowflake(self) -> StellwerkSnowflake {
         self.0
     }
 }
@@ -59,13 +55,13 @@ impl<Marker> Display for Id<Marker> {
     }
 }
 
-impl<Marker> From<SocialmediathingnametbdSnowflake> for Id<Marker> {
-    fn from(value: SocialmediathingnametbdSnowflake) -> Self {
+impl<Marker> From<StellwerkSnowflake> for Id<Marker> {
+    fn from(value: StellwerkSnowflake) -> Self {
         Self::new(value)
     }
 }
 
-impl<Marker> From<Id<Marker>> for SocialmediathingnametbdSnowflake {
+impl<Marker> From<Id<Marker>> for StellwerkSnowflake {
     fn from(value: Id<Marker>) -> Self {
         value.0
     }
@@ -73,7 +69,7 @@ impl<Marker> From<Id<Marker>> for SocialmediathingnametbdSnowflake {
 
 impl<Marker> From<u64> for Id<Marker> {
     fn from(value: u64) -> Self {
-        Id::new(SocialmediathingnametbdSnowflake::new(value))
+        Id::new(StellwerkSnowflake::new(value))
     }
 }
 
