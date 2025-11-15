@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO posts.posts (post_snowflake, content, user_snowflake)\n            VALUES ($1, $2, $3)\n            RETURNING post_snowflake, content, user_snowflake\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "post_snowflake",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "user_snowflake",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "23071e4a553b6036f6f8b71c74aa500b4920b8418526c462e443018d41a1d9eb"
+}

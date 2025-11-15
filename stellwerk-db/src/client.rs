@@ -1,11 +1,11 @@
-use crate::record::{AuthenticationRecord, FullPostRecord, PartialPostRecord, UserRecord};
+use crate::record::{AuthenticationRecord, PartialPostRecord, PostRecord, UserRecord};
 use sqlx::{PgPool, migrate, migrate::MigrateError, query, query_as, query_scalar};
 use std::sync::nonpoison::Mutex;
 use stellwerk_common::{
     model::{
         Id, ModelValidationError, StellwerkSnowflakeGenerator,
         auth::{AuthTokenHash, Authentication},
-        post::{CreatePost, PartialPost, Post, PostMarker},
+        post::{PartialPost, Post, PostContent, PostMarker},
         user::{CreateUser, User, UserHandle, UserMarker},
     },
     snowflake::{ProcessId, WorkerId},
@@ -122,6 +122,7 @@ impl DbClient {
             PartialPostRecord,
             "
             SELECT
+                posts.user_snowflake,
                 posts.post_snowflake,
                 posts.content
             FROM
@@ -165,7 +166,7 @@ impl DbClient {
 
     pub async fn fetch_post(&self, post_id: Id<PostMarker>) -> Result<Option<Post>> {
         let record = query_as!(
-            FullPostRecord,
+            PostRecord,
             "
             SELECT
                 posts.post_snowflake,
@@ -186,23 +187,29 @@ impl DbClient {
         Ok(post)
     }
 
-    pub async fn create_post(&self, post: &CreatePost) -> Result<Id<PostMarker>> {
+    pub async fn create_post(
+        &self,
+        content: &PostContent,
+        author: Id<UserMarker>,
+    ) -> Result<PartialPost> {
         let post_snowflake = self.snowflake_generator.lock().generate();
 
-        let returned_snowflake = query_scalar!(
+        let returned_record = query_as!(
+            PartialPostRecord,
             "
             INSERT INTO posts.posts (post_snowflake, content, user_snowflake)
             VALUES ($1, $2, $3)
-            RETURNING posts.post_snowflake
+            RETURNING post_snowflake, content, user_snowflake
             ",
             post_snowflake.get().cast_signed(),
-            post.content,
-            post.author.snowflake().get().cast_signed(),
+            content.content,
+            author.snowflake().get().cast_signed(),
         )
         .fetch_one(&self.pool)
-        .await?;
+        .await?
+        .try_into()?;
 
-        Ok(returned_snowflake.cast_unsigned().into())
+        Ok(returned_record)
     }
 
     pub async fn fetch_auth(&self, token_hash: &AuthTokenHash) -> Result<Option<Authentication>> {

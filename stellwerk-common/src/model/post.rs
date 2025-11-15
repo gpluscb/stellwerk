@@ -11,17 +11,17 @@ pub struct PostMarker;
 pub struct Post {
     pub id: Id<PostMarker>,
     pub author: User,
-    pub content: String,
+    pub content: PostContent,
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Default, Hash, Deserialize, Serialize)]
 pub struct PartialPost {
     pub id: Id<PostMarker>,
-    pub content: String,
+    pub author_id: Id<UserMarker>,
+    pub content: PostContent,
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Default, Hash, Deserialize, Serialize)]
-pub struct CreatePost {
-    pub author: Id<UserMarker>,
+pub struct PostContent {
     pub content: String,
 }

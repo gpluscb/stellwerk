@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                posts.user_snowflake,\n                posts.post_snowflake,\n                posts.content\n            FROM\n                posts.posts\n            WHERE\n                posts.user_snowflake = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_snowflake",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "post_snowflake",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "content",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b0d9868e03db14627667462d009d9ab9fcd4ec1c7da029e6ff0d43d0a5768052"
+}
