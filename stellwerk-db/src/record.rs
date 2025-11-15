@@ -1,7 +1,7 @@
 use stellwerk_common::model::{
     ModelValidationError,
     auth::Authentication,
-    post::{PartialPost, Post},
+    post::{PartialPost, Post, PostContent},
     user::{User, UserHandle},
 };
 use time::{Duration, PrimitiveDateTime};
@@ -13,7 +13,7 @@ pub(crate) struct UserRecord {
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Default, Hash)]
-pub(crate) struct FullPostRecord {
+pub(crate) struct PostRecord {
     pub post_snowflake: i64,
     pub content: String,
     pub user_snowflake: i64,
@@ -22,6 +22,7 @@ pub(crate) struct FullPostRecord {
 
 #[derive(Clone, Eq, PartialEq, Debug, Default, Hash)]
 pub(crate) struct PartialPostRecord {
+    pub user_snowflake: i64,
     pub post_snowflake: i64,
     pub content: String,
 }
@@ -51,22 +52,27 @@ impl TryFrom<PartialPostRecord> for PartialPost {
     fn try_from(value: PartialPostRecord) -> Result<Self, Self::Error> {
         Ok(Self {
             id: value.post_snowflake.cast_unsigned().into(),
-            content: value.content,
+            author_id: value.user_snowflake.cast_unsigned().into(),
+            content: PostContent {
+                content: value.content,
+            },
         })
     }
 }
 
-impl TryFrom<FullPostRecord> for Post {
+impl TryFrom<PostRecord> for Post {
     type Error = ModelValidationError;
 
-    fn try_from(value: FullPostRecord) -> Result<Self, Self::Error> {
+    fn try_from(value: PostRecord) -> Result<Self, Self::Error> {
         Ok(Self {
             id: value.post_snowflake.cast_unsigned().into(),
             author: User {
                 id: value.user_snowflake.cast_unsigned().into(),
                 handle: UserHandle::new(value.handle)?,
             },
-            content: value.content,
+            content: PostContent {
+                content: value.content,
+            },
         })
     }
 }
