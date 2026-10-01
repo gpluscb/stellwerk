@@ -38,10 +38,10 @@ struct GetAuthUrlParams {
 async fn get_oauth2_url(
     PathWrapper(GetAuthUrlPath {}): PathWrapper<GetAuthUrlPath>,
     Query(params): Query<GetAuthUrlParams>,
-    State(oauth2_config): State<Arc<Oauth2Service>>,
+    State(oauth2_service): State<Arc<Oauth2Service>>,
     State(db): State<Arc<DbClient>>,
 ) -> Result<Json<AuthUrlResponse>> {
-    let oauth2_provider = oauth2_config.providers.get_provider(params.provider);
+    let oauth2_provider = oauth2_service.providers.get_provider(params.provider);
     let redirect_url = RedirectUrl::from_url(params.redirect);
 
     let (url, csrf_token) = oauth2_provider
@@ -77,7 +77,7 @@ struct GetTokenParams {
 async fn get_token(
     PathWrapper(GetTokenPath {}): PathWrapper<GetTokenPath>,
     Query(params): Query<GetTokenParams>,
-    State(oauth2_config): State<Arc<Oauth2Service>>,
+    State(oauth2_service): State<Arc<Oauth2Service>>,
     State(login_logout_service): State<Arc<LoginLogoutService>>,
     State(db): State<Arc<DbClient>>,
 ) -> Result<Json<AuthTokenResponse>> {
@@ -102,7 +102,7 @@ async fn get_token(
     // multiple times to generate multiple tokens, but this is not harmful.
     db.delete_oauth2_state(&params.session_id).await?;
 
-    let auth_provider = oauth2_config
+    let auth_provider = oauth2_service
         .providers
         .get_provider(stored_oauth2_state.auth_provider);
 
@@ -111,7 +111,7 @@ async fn get_token(
         .client
         .exchange_code(code)
         .set_redirect_uri(Cow::Owned(stored_oauth2_state.redirect_url))
-        .request_async(&oauth2_config.http_client)
+        .request_async(&oauth2_service.http_client)
         .await?;
     let access_token = token_response.access_token();
 
@@ -124,7 +124,7 @@ async fn get_token(
     match auth_provider.client.revoke_token(access_token.into()) {
         Ok(revocation_request) => {
             if let Err(error) = revocation_request
-                .request_async(&oauth2_config.http_client)
+                .request_async(&oauth2_service.http_client)
                 .await
             {
                 error!(%error, "Error executing token revocation");

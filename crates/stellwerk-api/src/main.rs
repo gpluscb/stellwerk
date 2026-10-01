@@ -66,8 +66,8 @@ fn install_tracing() {
         .init();
 }
 
-async fn connect_database(env: &ApiConfig) -> Result<DbClient, InitError> {
-    DbClient::connect_and_migrate(&env.database_url, env.worker_id, env.process_id)
+async fn connect_database(config: &ApiConfig) -> Result<DbClient, InitError> {
+    DbClient::connect_and_migrate(&config.database_url, config.worker_id, config.process_id)
         .await
         .map_err(InitError::DatabaseInitialization)
 }
