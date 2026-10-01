@@ -1,3 +1,10 @@
+# 301 Moved Permanently!
+
+Stellwerk now lives [on Codeberg](https://codeberg.org/quietmarie/stellwerk).
+The version of the code that lives here will forever stay unlicensed.
+That means you likely cannot use it for your project.
+Head to Codeberg instead, where we plan to add a license soon™.
+
 # Stellwerk
 
 Stellwerk is meant to become a proof of concept social media site where instead of algorithms, users decide what appears
