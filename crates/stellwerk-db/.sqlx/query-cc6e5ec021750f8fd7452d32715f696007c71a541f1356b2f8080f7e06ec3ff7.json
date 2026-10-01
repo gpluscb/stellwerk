@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO\n                auth.oauth2_temp_states (session_id, auth_provider, csrf_token, redirect_url, expires_at)\n            VALUES\n                ($1, $2, $3, $4, $5)\n            RETURNING\n                session_id,\n                auth_provider as \"auth_provider: OAuth2ProviderChoiceRecord\",\n                csrf_token,\n                redirect_url,\n                expires_at\n            ",
+  "query": "\n            INSERT INTO\n                auth.oauth2_temp_states (session_id, auth_provider, csrf_token, redirect_url, expires_at)\n            VALUES\n                ($1, $2, $3, $4, $5)\n            RETURNING\n                session_id,\n                auth_provider as \"auth_provider: Oauth2ProviderChoiceRecord\",\n                csrf_token,\n                redirect_url,\n                expires_at\n            ",
   "describe": {
     "columns": [
       {
@@ -16,7 +16,7 @@
       },
       {
         "ordinal": 1,
-        "name": "auth_provider: OAuth2ProviderChoiceRecord",
+        "name": "auth_provider: Oauth2ProviderChoiceRecord",
         "type_info": {
           "Custom": {
             "name": "auth.oauth2_provider",
@@ -94,5 +94,5 @@
       false
     ]
   },
-  "hash": "9db3203099ff5591b3c8ea309495ea70f1c802fa622d20edf3d64f4361bdfd3a"
+  "hash": "cc6e5ec021750f8fd7452d32715f696007c71a541f1356b2f8080f7e06ec3ff7"
 }

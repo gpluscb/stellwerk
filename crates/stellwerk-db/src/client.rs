@@ -1,6 +1,6 @@
 use crate::record::{
-    AuthenticationRecord, OAuth2ProviderChoiceRecord, OAuth2StateRecord,
-    OAuth2UserIdentityDiscordRecord, PartialPostRecord, PostRecord, UserRecord,
+    AuthenticationRecord, Oauth2ProviderChoiceRecord, Oauth2StateRecord,
+    Oauth2UserIdentityDiscordRecord, PartialPostRecord, PostRecord, UserRecord,
 };
 use sqlx::{PgPool, migrate, migrate::MigrateError, query, query_as, query_scalar};
 use stellwerk_common::{
@@ -8,7 +8,7 @@ use stellwerk_common::{
         ModelValidationError,
         auth::{AuthTokenHash, Authentication},
         id::{Id, StellwerkSnowflakeGenerator},
-        oauth2::{OAuth2State, OAuth2UserIdentityDiscord},
+        oauth2::{Oauth2State, Oauth2UserIdentityDiscord},
         pagination::PaginationReference,
         post::{PartialPost, Post, PostContent, PostMarker},
         user::{CreateUser, User, UserHandle, UserMarker},
@@ -377,13 +377,13 @@ impl DbClient {
     }
 
     /// May return expired oauth2 state
-    pub async fn fetch_oauth2_state(&self, session_id: &str) -> Result<Option<OAuth2State>> {
+    pub async fn fetch_oauth2_state(&self, session_id: &str) -> Result<Option<Oauth2State>> {
         let record = sqlx::query_as!(
-            OAuth2StateRecord,
+            Oauth2StateRecord,
             r#"
             SELECT
                 session_id,
-                auth_provider as "auth_provider: OAuth2ProviderChoiceRecord",
+                auth_provider as "auth_provider: Oauth2ProviderChoiceRecord",
                 csrf_token,
                 redirect_url,
                 expires_at
@@ -397,19 +397,19 @@ impl DbClient {
         .fetch_optional(&self.pool)
         .await?;
 
-        let oauth2_state = record.map(OAuth2State::try_from).transpose()?;
+        let oauth2_state = record.map(Oauth2State::try_from).transpose()?;
         Ok(oauth2_state)
     }
 
-    pub async fn create_oauth2_state(&self, oauth2_state: &OAuth2State) -> Result<OAuth2State> {
-        let oauth2_provider_choice: OAuth2ProviderChoiceRecord = oauth2_state.auth_provider.into();
+    pub async fn create_oauth2_state(&self, oauth2_state: &Oauth2State) -> Result<Oauth2State> {
+        let oauth2_provider_choice: Oauth2ProviderChoiceRecord = oauth2_state.auth_provider.into();
         let expires_at = PrimitiveDateTime::new(
             oauth2_state.expires_at.date(),
             oauth2_state.expires_at.time(),
         );
 
         let returned_oauth2_state = query_as!(
-            OAuth2StateRecord,
+            Oauth2StateRecord,
             r#"
             INSERT INTO
                 auth.oauth2_temp_states (session_id, auth_provider, csrf_token, redirect_url, expires_at)
@@ -417,13 +417,13 @@ impl DbClient {
                 ($1, $2, $3, $4, $5)
             RETURNING
                 session_id,
-                auth_provider as "auth_provider: OAuth2ProviderChoiceRecord",
+                auth_provider as "auth_provider: Oauth2ProviderChoiceRecord",
                 csrf_token,
                 redirect_url,
                 expires_at
             "#,
             oauth2_state.session_id,
-            oauth2_provider_choice as OAuth2ProviderChoiceRecord,
+            oauth2_provider_choice as Oauth2ProviderChoiceRecord,
             oauth2_state.csrf_token.secret(),
             oauth2_state.redirect_url.as_str(),
             expires_at,
@@ -472,9 +472,9 @@ impl DbClient {
     pub async fn fetch_oauth2_identity_discord(
         &self,
         discord_id: u64,
-    ) -> Result<Option<OAuth2UserIdentityDiscord>> {
+    ) -> Result<Option<Oauth2UserIdentityDiscord>> {
         let record = sqlx::query_as!(
-            OAuth2UserIdentityDiscordRecord,
+            Oauth2UserIdentityDiscordRecord,
             r#"
             SELECT
                 users.user_snowflake,
@@ -492,7 +492,7 @@ impl DbClient {
         .await?;
 
         let identity = record
-            .map(OAuth2UserIdentityDiscord::try_from)
+            .map(Oauth2UserIdentityDiscord::try_from)
             .transpose()?;
         Ok(identity)
     }

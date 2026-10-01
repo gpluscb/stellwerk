@@ -1,5 +1,6 @@
 use crate::{
-    oauth2::{OAuth2Config, OAuth2IdentityRetrievalError},
+    login_logout::{LoginError, LoginLogoutService},
+    oauth2::{Oauth2IdentityRetrievalError, Oauth2Service},
     server::auth::AuthenticationRejection,
 };
 use aide::{OperationOutput, axum::ApiRouter, openapi::OpenApi};
@@ -15,9 +16,7 @@ use json::Json;
 use oauth2::{HttpClientError, RequestTokenError, basic::BasicErrorResponse};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use stellwerk_common::model::{
-    auth::AuthTokenHashError, id::Id, post::PostMarker, user::UserMarker,
-};
+use stellwerk_common::model::{id::Id, post::PostMarker, user::UserMarker};
 use stellwerk_db::client::{DbClient, DbError};
 use thiserror::Error;
 use tracing::error;
@@ -34,7 +33,8 @@ pub type ServerRouter = ApiRouter<ServerState>;
 pub struct ServerState {
     pub db_client: Arc<DbClient>,
     pub open_api: Arc<OpenApi>,
-    pub oauth2_config: Arc<OAuth2Config>,
+    pub oauth2_service: Arc<Oauth2Service>,
+    pub login_logout_service: Arc<LoginLogoutService>,
 }
 
 pub fn routes() -> ServerRouter {
@@ -70,21 +70,21 @@ pub enum ServerError {
     #[error("User with id {0} was not found.")]
     UserByIdNotFound(Id<UserMarker>),
     #[error("Identity could not be retrieved with OAuth2 provider: {0}")]
-    OAuth2IdentityRetrieval(#[from] OAuth2IdentityRetrievalError),
+    Oauth2IdentityRetrieval(#[from] Oauth2IdentityRetrievalError),
     #[error("The OAuth2 temp states did not contain a state for the session id {0}")]
-    OAuth2NoStateForSession(String),
+    Oauth2NoStateForSession(String),
     #[error("The provided csrf token was incorrect")]
-    OAuth2WrongCsrfToken,
+    Oauth2WrongCsrfToken,
     #[error("Requesting token from auth provider failed: {0}")]
-    OAuth2RequestTokenError(
+    Oauth2RequestTokenError(
         #[from] RequestTokenError<HttpClientError<oauth2::reqwest::Error>, BasicErrorResponse>,
     ),
     #[error("No user associated with the identity provided by auth provider")]
-    OAuth2NoAssociatedUser,
+    Oauth2NoAssociatedUser,
     #[error("OAuth2 configuration error: {0}")]
-    OAuth2Configuration(#[from] oauth2::ConfigurationError),
-    #[error(transparent)]
-    AuthTokenHash(#[from] AuthTokenHashError),
+    Oauth2Configuration(#[from] oauth2::ConfigurationError),
+    #[error("Error logging user in: {0}")]
+    LoginLogout(#[from] LoginError),
 }
 
 // TODO: Add docs for errors (maybe once https://github.com/tamasfe/aide/pull/263 lands?)
@@ -102,15 +102,15 @@ impl ServerError {
             | ServerError::UserByIdNotFound(_) => StatusCode::NOT_FOUND,
             ServerError::JsonRejection(_)
             | ServerError::QueryRejection(_)
-            | ServerError::OAuth2NoStateForSession(_)
-            | ServerError::OAuth2WrongCsrfToken
-            | ServerError::OAuth2NoAssociatedUser => StatusCode::BAD_REQUEST,
+            | ServerError::Oauth2NoStateForSession(_)
+            | ServerError::Oauth2WrongCsrfToken
+            | ServerError::Oauth2NoAssociatedUser => StatusCode::BAD_REQUEST,
             ServerError::JsonResponse(_)
             | ServerError::Database(_)
-            | ServerError::OAuth2IdentityRetrieval(_)
-            | ServerError::OAuth2RequestTokenError(_)
-            | ServerError::OAuth2Configuration(_)
-            | ServerError::AuthTokenHash(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            | ServerError::Oauth2IdentityRetrieval(_)
+            | ServerError::Oauth2RequestTokenError(_)
+            | ServerError::Oauth2Configuration(_)
+            | ServerError::LoginLogout(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

@@ -1,8 +1,13 @@
+use serde::{Deserialize, Serialize};
+use serde_with::DurationSeconds;
 use thiserror::Error;
 use time::Duration;
 
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug, Default, Hash)]
-pub struct PositiveDuration(Duration);
+#[serde_with::serde_as]
+#[derive(
+    Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug, Default, Hash, Serialize, Deserialize,
+)]
+pub struct PositiveDuration(#[serde_as(as = "DurationSeconds<f64>")] Duration);
 
 impl PositiveDuration {
     #[must_use]

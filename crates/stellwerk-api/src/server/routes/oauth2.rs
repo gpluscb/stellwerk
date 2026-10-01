@@ -1,5 +1,6 @@
 use crate::{
-    oauth2::{AuthTokenResponse, AuthUrlResponse, OAuth2Config, get_identity_from_provider},
+    login_logout::LoginLogoutService,
+    oauth2::{AuthTokenResponse, AuthUrlResponse, Oauth2Service, get_identity_from_provider},
     server::{
         Result, ServerError, ServerRouter, json::Json, query::Query, typed_path::PathWrapper,
     },
@@ -12,11 +13,7 @@ use serde::Deserialize;
 use std::{borrow::Cow, sync::Arc};
 use stellwerk_common::{
     json_schema_wrappers::JsonSchemaOffsetDateTime,
-    model::{
-        auth::{AuthToken, Authentication},
-        oauth2::{OAuth2ProviderChoice, OAuth2State},
-    },
-    positive_duration::PositiveDuration,
+    model::oauth2::{Oauth2ProviderChoice, Oauth2State},
 };
 use stellwerk_db::client::DbClient;
 use time::{Duration, UtcDateTime, UtcOffset};
@@ -33,7 +30,7 @@ pub fn routes() -> ServerRouter {
 struct GetAuthUrlPath {}
 #[derive(Deserialize, JsonSchema)]
 struct GetAuthUrlParams {
-    provider: OAuth2ProviderChoice,
+    provider: Oauth2ProviderChoice,
     redirect: Url,
     session_id: String,
 }
@@ -41,10 +38,10 @@ struct GetAuthUrlParams {
 async fn get_oauth2_url(
     PathWrapper(GetAuthUrlPath {}): PathWrapper<GetAuthUrlPath>,
     Query(params): Query<GetAuthUrlParams>,
-    State(oauth2_config): State<Arc<OAuth2Config>>,
+    State(oauth2_service): State<Arc<Oauth2Service>>,
     State(db): State<Arc<DbClient>>,
 ) -> Result<Json<AuthUrlResponse>> {
-    let oauth2_provider = oauth2_config.providers.get_provider(params.provider);
+    let oauth2_provider = oauth2_service.providers.get_provider(params.provider);
     let redirect_url = RedirectUrl::from_url(params.redirect);
 
     let (url, csrf_token) = oauth2_provider
@@ -54,7 +51,7 @@ async fn get_oauth2_url(
         .add_scopes(oauth2_provider.scopes.iter().cloned())
         .url();
 
-    let oauth2_state = OAuth2State {
+    let oauth2_state = Oauth2State {
         session_id: params.session_id,
         auth_provider: params.provider,
         csrf_token,
@@ -80,7 +77,8 @@ struct GetTokenParams {
 async fn get_token(
     PathWrapper(GetTokenPath {}): PathWrapper<GetTokenPath>,
     Query(params): Query<GetTokenParams>,
-    State(oauth2_config): State<Arc<OAuth2Config>>,
+    State(oauth2_service): State<Arc<Oauth2Service>>,
+    State(login_logout_service): State<Arc<LoginLogoutService>>,
     State(db): State<Arc<DbClient>>,
 ) -> Result<Json<AuthTokenResponse>> {
     let code = AuthorizationCode::new(params.code);
@@ -89,14 +87,14 @@ async fn get_token(
     let stored_oauth2_state = db
         .fetch_oauth2_state(&params.session_id)
         .await?
-        .ok_or_else(|| ServerError::OAuth2NoStateForSession(params.session_id.clone()))?;
+        .ok_or_else(|| ServerError::Oauth2NoStateForSession(params.session_id.clone()))?;
 
     if stored_oauth2_state.expires_at < UtcDateTime::now() {
-        return Err(ServerError::OAuth2NoStateForSession(params.session_id));
+        return Err(ServerError::Oauth2NoStateForSession(params.session_id));
     }
 
     if stored_oauth2_state.csrf_token != csrf_token {
-        return Err(ServerError::OAuth2WrongCsrfToken);
+        return Err(ServerError::Oauth2WrongCsrfToken);
     }
 
     // State has been used and can be deleted
@@ -104,7 +102,7 @@ async fn get_token(
     // multiple times to generate multiple tokens, but this is not harmful.
     db.delete_oauth2_state(&params.session_id).await?;
 
-    let auth_provider = oauth2_config
+    let auth_provider = oauth2_service
         .providers
         .get_provider(stored_oauth2_state.auth_provider);
 
@@ -113,7 +111,7 @@ async fn get_token(
         .client
         .exchange_code(code)
         .set_redirect_uri(Cow::Owned(stored_oauth2_state.redirect_url))
-        .request_async(&oauth2_config.http_client)
+        .request_async(&oauth2_service.http_client)
         .await?;
     let access_token = token_response.access_token();
 
@@ -126,7 +124,7 @@ async fn get_token(
     match auth_provider.client.revoke_token(access_token.into()) {
         Ok(revocation_request) => {
             if let Err(error) = revocation_request
-                .request_async(&oauth2_config.http_client)
+                .request_async(&oauth2_service.http_client)
                 .await
             {
                 error!(%error, "Error executing token revocation");
@@ -136,36 +134,18 @@ async fn get_token(
     }
 
     // Return on errors only after revoking
-    let user_id = user_id_result?.ok_or(ServerError::OAuth2NoAssociatedUser)?;
+    let user_id = user_id_result?.ok_or(ServerError::Oauth2NoAssociatedUser)?;
 
-    // Generate new api token for user
-    let random_token = AuthToken::generate_random(user_id);
-    let hash = random_token.hash()?;
-
-    let expires_after = if params.expires {
-        // TODO: This duration should probably be configurable for the server
-        Some(PositiveDuration::new_unchecked(Duration::days(1)))
-    } else {
-        None
-    };
-
-    let created_at = UtcDateTime::now();
-
-    let authentication = Authentication {
-        user: user_id,
-        token_hash: hash,
-        created_at,
-        expires_after,
-    };
-
-    // Store newly created authentication
-    db.create_auth(&authentication).await?;
-
-    let expires_at = expires_after
-        .map(|expires_after| (created_at + expires_after.get()).to_offset(UtcOffset::UTC));
+    // Log in user
+    let login_data = login_logout_service
+        .login_user(&db, user_id, params.expires)
+        .await?;
 
     Ok(Json(AuthTokenResponse {
-        token: random_token.token_str(),
-        expires_at: expires_at.map(JsonSchemaOffsetDateTime),
+        token: login_data.token.token_str(),
+        expires_at: login_data
+            .expires_at
+            .map(|utc_date_time| utc_date_time.to_offset(UtcOffset::UTC))
+            .map(JsonSchemaOffsetDateTime),
     }))
 }

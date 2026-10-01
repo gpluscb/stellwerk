@@ -62,10 +62,11 @@ Its only purpose is to ensure that, for example, a user id is not accidentally u
 ### Running with Docker (recommended)
 
 1. Install Docker.
-2. Create a directory `docker/Secrets` with files `POSTGRES_USER.txt`, `POSTGRES_PASSWORD.txt`, `POSTGRES_DB.txt`.
+2. Create a directory `docker/postgres/secrets` with files `POSTGRES_USER.dev.txt`, `POSTGRES_PASSWORD.dev.txt`, and
+   `POSTGRES_DB.dev.txt`.
    The user and password files should contain the name and password your postgres user should have.
    The contents of the db file will be the name of the database, for example `stellwerk`.
-3. Create the env file `docker/stellwerk-api/.env`.
+3. Create the api config file `docker/stellwerk-api/secrets/config.dev.toml`.
 4. Run `docker compose --file docker/docker-compose.dev.yml up --build`.
    Changes to the `stellwerk-frontend` are applied automatically.
    To apply changes to `stellwerk-api`, you can run
@@ -75,18 +76,28 @@ Its only purpose is to ensure that, for example, a user id is not accidentally u
 
 1. Install PostgreSQL and create a PostgreSQL database
 2. Install rust (nightly).
-3. Create the env file `stellwerk-api/.env`
+3. Create a `config.toml` file for stellwerk-api
 4. cd into `stellwerk-api`
-5. Run `cargo run`
+5. Run `cargo run` with the `STELLWERK_API_CONFIG_FILE` argument pointing to your `config.toml` file
 6. cd into `stellwerk-frontend`
 7. Run `npm run dev`
 
-### Example `.env`:
+### Example `config.toml` for stellwerk-api:
 
-```.env
-SERVER_ADDRESS=127.0.0.1
-SERVER_PORT=8080
-DATABASE_URL=postgres://postgresuser:postgrespw@127.0.0.1/postgresdb
-WORKER_ID=0
-PROCESS_ID=0
+```toml
+server_address = "127.0.0.1:8080"
+database_url = "postgres://postgresuser:postgrespw@127.0.0.1/postgresdb"
+worker_id = 0
+process_id = 0
+
+[oauth2_providers_config.discord]
+client_id = "332269999912132097"
+client_secret = "937it3ow87i4ery69876wqire"
+auth_url = "https://discord.com/oauth2/authorize"
+token_url = "https://discord.com/api/v10/oauth2/token"
+revocation_url = "https://discord.com/api/v10/oauth2/token/revoke"
+scopes = ["identify"]
+
+[login_logout_config]
+expiring_token_duration_seconds = 86400 # One day
 ```

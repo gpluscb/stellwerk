@@ -197,7 +197,7 @@ export interface paths {
         get: {
             parameters: {
                 query: {
-                    provider: components["schemas"]["OAuth2ProviderChoice"];
+                    provider: components["schemas"]["Oauth2ProviderChoice"];
                     redirect: string;
                     session_id: string;
                 };
@@ -449,7 +449,7 @@ export interface components {
             [key: string]: unknown;
         };
         GetAuthUrlParams: {
-            provider: components["schemas"]["OAuth2ProviderChoice"];
+            provider: components["schemas"]["Oauth2ProviderChoice"];
             /** Format: uri */
             redirect: string;
             session_id: string;
@@ -766,7 +766,7 @@ export interface components {
             };
         }) | unknown);
         /** @enum {string} */
-        OAuth2ProviderChoice: "Discord";
+        Oauth2ProviderChoice: "Discord";
         OpenApi: {
             /** @description An element to hold various schemas for the document. */
             components?: components["schemas"]["Components"] | null;

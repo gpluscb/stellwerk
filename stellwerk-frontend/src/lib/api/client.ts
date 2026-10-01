@@ -16,7 +16,7 @@ const CLIENT = createClient<paths>({
 
 export type Post = components['schemas']['Post'];
 export type PaginationReference = components['schemas']['PaginationReference'];
-export type OAuth2ProviderChoice = components['schemas']['OAuth2ProviderChoice'];
+export type Oauth2ProviderChoice = components['schemas']['Oauth2ProviderChoice'];
 export type AuthUrlResponse = components['schemas']['AuthUrlResponse'];
 export type AuthTokenResponse = components['schemas']['AuthTokenResponse'];
 
@@ -52,7 +52,7 @@ export async function getRecentPosts(
 }
 
 export async function getAuthUrl(
-	provider: OAuth2ProviderChoice,
+	provider: Oauth2ProviderChoice,
 	redirect: URL,
 	session_id: string,
 ): Promise<AuthUrlResponse> {

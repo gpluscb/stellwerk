@@ -22,8 +22,10 @@ services:
       dockerfile: ../docker/stellwerk-api/Dockerfile.dev
       target: final
     network_mode: host
-    env_file:
-      - stellwerk-api/.env
+    environment:
+      - STELLWERK_API_CONFIG_FILE=/run/secrets/api_config
+    secrets:
+      - api_config
     depends_on:
       postgres:
         condition: service_healthy
@@ -38,7 +40,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./data-dev:/var/lib/postgresql/18/data
+      - ./postgres/data/dev:/var/lib/postgresql/18/data
     secrets:
       - postgres_db
       - postgres_user
@@ -51,8 +53,10 @@ services:
 
 secrets:
   postgres_db:
-    file: secrets/POSTGRES_DB.txt
+    file: postgres/secrets/POSTGRES_DB.dev.txt
   postgres_user:
-    file: secrets/POSTGRES_USER.txt
+    file: postgres/secrets/POSTGRES_USER.dev.txt
   postgres_password:
-    file: secrets/POSTGRES_PASSWORD.txt
+    file: postgres/secrets/POSTGRES_PASSWORD.dev.txt
+  api_config:
+    file: stellwerk-api/secrets/config.dev.toml

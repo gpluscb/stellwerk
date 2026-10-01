@@ -1,5 +1,5 @@
 **/.idea/
 **/.vscode/
-docker/data/
-docker/secrets/
+docker/**/data/
+docker/**/secrets/
 **/.env
